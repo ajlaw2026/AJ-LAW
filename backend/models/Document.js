@@ -70,7 +70,9 @@ documentSchema.pre('save', async function () {
   if (this.documentType === 'EC' || this.documentType === 'Nagal') {
       this.totalFee = Number(this.amount || 0) + Number(this.commission || 0) + Number(this.others || 0);
   } else {
-      this.totalFee = Number(this.editFee || 0) + Number(this.stamp || 0) + Number(this.others || 0);
+      // For Deed and Agreement: editFee + stamp + others + writingFee + ddCommission are all billable
+      this.totalFee = Number(this.editFee || 0) + Number(this.stamp || 0) + Number(this.others || 0)
+                    + Number(this.writingFee || 0) + Number(this.ddCommission || 0);
   }
   
   // If we have payments, sync received amount from the transaction history

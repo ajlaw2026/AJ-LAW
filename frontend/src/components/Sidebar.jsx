@@ -5,7 +5,7 @@ import { Nav, Button, Offcanvas } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { 
   faGavel, faThLarge, faMapMarkedAlt, faFileAlt, 
-  faFolderOpen, faUserFriends, faHistory, faSignOutAlt, faBars, faBalanceScale
+  faFolderOpen, faUserFriends, faHistory, faSignOutAlt, faBars, faBalanceScale, faChartLine
 } from "@fortawesome/free-solid-svg-icons";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -21,6 +21,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     { id: "aggrement", label: "Agreements", icon: faFolderOpen },
     { id: "deed", label: "Deed Records", icon: faUserFriends },
     { id: "payment", label: "Payment History", icon: faHistory },
+    { id: "logs", label: "Profit & Expense", icon: faChartLine },
   ];
 
   const handleClose = () => setShowMobile(false);
@@ -38,7 +39,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
           animate={{ opacity: 1, x: 0 }}
           className="brand-box"
         >
-          <FontAwesomeIcon icon={faGavel} className="gold-icon" />
+          <img src="/ajlogo.jpeg" alt="AJ Law Logo" className="brand-logo" />
           <span className="brand-name">AJ LAW FIRM</span>
         </motion.div>
       </div>
@@ -58,7 +59,8 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
                   nagal: '/nagal',
                   aggrement: '/aggrement',
                   deed: '/deed',
-                  payment: '/payment'
+                  payment: '/payment',
+                  logs: '/logs'
                 };
                 const target = routeMap[item.id] || '/dashboard';
                 navigate(target);
@@ -159,6 +161,24 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
         .gold-icon {
           color: #fbbf24;
           font-size: 1.5rem;
+        }
+
+        .brand-logo {
+          width: 60px;
+          height: 60px;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 2px solid rgba(251, 191, 36, 0.6);
+          flex-shrink: 0;
+        }
+
+        .mobile-brand-logo {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 2px solid rgba(251, 191, 36, 0.6);
+          flex-shrink: 0;
         }
 
         .brand-name {
@@ -287,7 +307,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
       {/* Mobile Top Nav */}
       <div className="mobile-header">
         <div className="d-flex align-items-center gap-2">
-          <FontAwesomeIcon icon={faGavel} className="gold-icon" />
+          <img src="/ajlogo.jpeg" alt="AJ Law Logo" className="mobile-brand-logo" />
           <span className="brand-name" style={{fontSize: '1rem'}}>AJ LAW FIRM</span>
         </div>
         <button className="hamburger-btn" onClick={handleShow}>

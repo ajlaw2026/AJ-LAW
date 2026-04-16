@@ -219,6 +219,26 @@ const Login = () => {
           letter-spacing: 2px;
           margin-bottom: 40px;
         }
+        .login-logo {
+          width: 90px;
+          height: 90px;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 3px solid rgba(251, 191, 36, 0.7);
+          box-shadow: 0 0 24px rgba(251, 191, 36, 0.25);
+          display: block;
+          margin: 0 auto 16px;
+        }
+        .login-logo-sm {
+          width: 64px;
+          height: 64px;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 2px solid rgba(251, 191, 36, 0.6);
+          box-shadow: 0 0 16px rgba(251, 191, 36, 0.2);
+          display: block;
+          margin: 0 auto 10px;
+        }
       `}</style>
 
       <motion.div 
@@ -229,7 +249,7 @@ const Login = () => {
       >
         <div className="login-grid">
           <div className="desktop-panel">
-            <FontAwesomeIcon icon={faBalanceScale} className="fa-icon" />
+          <img src="/ajlogo.jpeg" alt="AJ Law Logo" className="login-logo" />
             <h2>AJ LAW FIRM</h2>
             <p>Secure civil & land records management.</p>
             <p>Fast case tracking, document verification, and dashboard access.</p>
@@ -237,6 +257,8 @@ const Login = () => {
           <div className="form-panel">
             <div className="law-icon-bg"><FontAwesomeIcon icon={faBalanceScale} /></div>
             
+            <img src="/ajlogo.jpeg" alt="AJ Law Logo" className="login-logo-sm" />
+
             {/* Animated Title: Letters coming one by one */}
             <motion.div 
           key={animationKey}

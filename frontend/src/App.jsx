@@ -7,6 +7,7 @@ import Nagal from './components/Nagal'
 import Aggrement from './components/Aggrement'
 import Deed from './components/Deed'
 import Payment from './components/Payment'
+import Logs from './components/Logs'
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <Route path="/aggrement" element={<Aggrement />} />
         <Route path="/deed" element={<Deed />} />
         <Route path="/payment" element={<Payment />} />
+        <Route path="/logs" element={<Logs />} />
       </Routes>
     </Router>
   )

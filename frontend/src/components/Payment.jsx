@@ -33,6 +33,7 @@ const Payment = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState({ recordType: "", status: "", vendor: "", date: "" });
   const [sortConfig, setSortConfig] = useState({ key: "date", direction: "desc" });
+  const [activeCardFilter, setActiveCardFilter] = useState(""); // 'today' | 'pending' | ''
   const [showViewModal, setShowViewModal] = useState(false);
   const [currentPayment, setCurrentPayment] = useState(null);
 
@@ -74,16 +75,36 @@ const Payment = () => {
           });
         }
       });
-      // Sort: Latest payments first
+      // Sort: Latest payments first (by date+time desc)
       flattenedPayments.sort((a, b) => {
-        const dateA = new Date(`${a.date} ${a.time}`);
-        const dateB = new Date(`${b.date} ${b.time}`);
-        return dateB - dateA;
+        const parseDateTime = (d, t) => {
+          if (!d) return 0;
+          // time may be '10:30 AM' or '10:30' or empty
+          try { return new Date(`${d}T${convertTo24h(t || '00:00')}`).getTime(); } catch { return new Date(d).getTime(); }
+        };
+        return parseDateTime(b.date, b.time) - parseDateTime(a.date, a.time);
       });
       setPaymentData(flattenedPayments);
     } catch(err) {
       console.error(err);
     }
+  };
+
+  // Convert '10:30 AM' / '10:30' to '10:30:00' for Date parsing
+  const convertTo24h = (timeStr) => {
+    if (!timeStr) return '00:00:00';
+    const trimmed = timeStr.trim();
+    const ampmMatch = trimmed.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (ampmMatch) {
+      let h = parseInt(ampmMatch[1], 10);
+      const m = ampmMatch[2];
+      const meridiem = ampmMatch[3].toUpperCase();
+      if (meridiem === 'AM' && h === 12) h = 0;
+      if (meridiem === 'PM' && h !== 12) h += 12;
+      return `${String(h).padStart(2,'0')}:${m}:00`;
+    }
+    // Already 24h or partial
+    return trimmed.length <= 5 ? `${trimmed}:00` : trimmed;
   };
 
   useEffect(() => {
@@ -96,11 +117,11 @@ const Payment = () => {
     const q = searchTerm.trim().toLowerCase();
     if (q) {
       data = data.filter(item =>
-        item.recordNo.toLowerCase().includes(q) ||
-        item.customerName.toLowerCase().includes(q) ||
-        item.vendor.toLowerCase().includes(q) ||
-        item.reference.toLowerCase().includes(q) ||
-        item.nagar.toLowerCase().includes(q)
+        (item.recordNo || '').toLowerCase().includes(q) ||
+        (item.customerName || '').toLowerCase().includes(q) ||
+        (item.vendor || '').toLowerCase().includes(q) ||
+        (item.reference || '').toLowerCase().includes(q) ||
+        (item.nagar || '').toLowerCase().includes(q)
       );
     }
 
@@ -109,15 +130,24 @@ const Payment = () => {
     if (filters.vendor) data = data.filter(item => item.vendor === filters.vendor);
     if (filters.date) data = data.filter(item => item.date === filters.date);
 
+    // Card quick-filters
+    if (activeCardFilter === 'today') {
+      const today = new Date().toISOString().split('T')[0];
+      data = data.filter(item => item.date === today);
+    } else if (activeCardFilter === 'pending') {
+      data = data.filter(item => item.status === 'Pending');
+    }
+
     if (sortConfig.key) {
       data.sort((a, b) => {
         const valueA = a[sortConfig.key];
         const valueB = b[sortConfig.key];
 
         if (sortConfig.key === "date") {
-          return sortConfig.direction === "asc" ?
-            new Date(valueA) - new Date(valueB) :
-            new Date(valueB) - new Date(valueA);
+          // Sort by date+time together
+          const dtA = new Date(`${a.date}T${convertTo24h(a.time)}`);
+          const dtB = new Date(`${b.date}T${convertTo24h(b.time)}`);
+          return sortConfig.direction === "asc" ? dtA - dtB : dtB - dtA;
         }
 
         if (typeof valueA === "number" && typeof valueB === "number") {
@@ -131,7 +161,7 @@ const Payment = () => {
     }
 
     setFilteredData(data);
-  }, [paymentData, searchTerm, filters, sortConfig]);
+  }, [paymentData, searchTerm, filters, sortConfig, activeCardFilter]);
 
   const handleSort = (key) => {
     setSortConfig(prev => ({
@@ -149,6 +179,12 @@ const Payment = () => {
     setFilters({ recordType: "", status: "", vendor: "", date: "" });
     setSearchTerm("");
     setSortConfig({ key: "date", direction: "desc" });
+    setActiveCardFilter("");
+  };
+
+  const handleCardFilter = (type) => {
+    // Toggle: clicking same card again clears the filter
+    setActiveCardFilter(prev => prev === type ? "" : type);
   };
 
   const getThemeVars = () => {
@@ -185,17 +221,20 @@ const Payment = () => {
     );
   };
 
-  const totalCount = filteredData.length;
-  const pendingCount = filteredData.filter(item => item.status === "Pending").length;
-  // Calculate unique document totals for the stats
-  const uniqueDocIds = [...new Set(filteredData.map(d => d.docId))];
+  // Stats always computed from full paymentData (not filtered) so cards reflect reality
+  const today = new Date().toISOString().split('T')[0];
+  const todayCount = paymentData.filter(item => item.date === today).length;
+  const pendingCount = paymentData.filter(item => item.status === "Pending").length;
+
+  // Financial totals from unique docs in full dataset
+  const uniqueDocIds = [...new Set(paymentData.map(d => d.docId))];
   let totalOverallAmount = 0;
   let totalOverallReceived = 0;
-  
+
   uniqueDocIds.forEach(id => {
-      const firstOccur = filteredData.find(d => d.docId === id);
-      totalOverallAmount += (firstOccur.fullAmount || 0);
-      totalOverallReceived += (firstOccur.docReceived || 0);
+    const firstOccur = paymentData.find(d => d.docId === id);
+    totalOverallAmount += (firstOccur.fullAmount || 0);
+    totalOverallReceived += (firstOccur.docReceived || 0);
   });
 
   const totalOverallPending = totalOverallAmount - totalOverallReceived;
@@ -211,6 +250,29 @@ const Payment = () => {
           .layout-page::before { content: "💸"; position: fixed; font-size: 280px; opacity: 0.02; bottom: 100px; right: -50px; z-index: 0; transform: rotate(-25deg); pointer-events: none; }
           .main-content { margin-left: 280px; padding: 40px; position: relative; z-index: 1; }
           @media (max-width: 991px) { .main-content { margin-left: 0; padding: 20px; } }
+          @media (max-width: 767px) {
+            .page-title { font-size: 1.6rem !important; }
+            .stat-number { font-size: 1.7rem !important; }
+            .stat-card { padding: 18px 12px; }
+            .controls-bar { padding: 16px; margin-bottom: 20px; }
+            .search-bar, .filter-select { padding: 12px 14px; font-size: 0.88rem; }
+            .search-bar { padding-left: 44px; }
+            .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            .table-modern { min-width: 1000px; }
+            .table-modern th, .table-modern td { white-space: nowrap; }
+            .receipt-amount-big { font-size: 2.5rem; }
+            .receipt-summary-row { grid-template-columns: 1fr; gap: 12px; margin: -20px 16px 24px; padding: 16px; }
+            .summary-item { border-right: none; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; }
+            .summary-item:last-child { border-bottom: none; }
+          }
+          @media (max-width: 575px) {
+            .main-content { padding: 12px; }
+            .page-title { font-size: 1.3rem !important; }
+            .stat-number { font-size: 1.4rem !important; }
+            .stat-icon-wrapper { width: 44px; height: 44px; margin-bottom: 12px; }
+            .stat-icon { font-size: 1.2rem; }
+            .stat-label { font-size: 0.75rem; }
+          }
 
           .page-header { margin-bottom: 24px; }
           .page-title { font-family: 'Playfair Display', serif; font-size: 2.2rem; font-weight: 700; color: var(--highlight); margin-bottom: 8px; letter-spacing: -0.5px; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
@@ -305,8 +367,34 @@ const Payment = () => {
         <motion.div variants={containerVariants} initial="hidden" animate="visible">
           {/* Stats Cards */}
           <Row className="mb-4 g-4">
-            <Col lg={3} md={6}><motion.div variants={itemVariants}><div className="stat-card"><div className="stat-icon-wrapper"><FontAwesomeIcon icon={faFileAlt} className="stat-icon" /></div><div className="stat-number">{totalCount}</div><div className="stat-label">Total Records</div></div></motion.div></Col>
-            <Col lg={3} md={6}><motion.div variants={itemVariants}><div className="stat-card"><div className="stat-icon-wrapper"><FontAwesomeIcon icon={faClock} className="stat-icon" /></div><div className="stat-number">{pendingCount}</div><div className="stat-label">Pending Payments</div></div></motion.div></Col>
+            <Col lg={3} md={6}>
+              <motion.div variants={itemVariants}>
+                <div
+                  className="stat-card"
+                  onClick={() => handleCardFilter('today')}
+                  style={{ cursor: 'pointer', outline: activeCardFilter === 'today' ? '2px solid #fbbf24' : 'none' }}
+                  title="Click to show today's payments only"
+                >
+                  <div className="stat-icon-wrapper"><FontAwesomeIcon icon={faFileAlt} className="stat-icon" /></div>
+                  <div className="stat-number">{todayCount}</div>
+                  <div className="stat-label">Today's Bills {activeCardFilter === 'today' ? '✓' : ''}</div>
+                </div>
+              </motion.div>
+            </Col>
+            <Col lg={3} md={6}>
+              <motion.div variants={itemVariants}>
+                <div
+                  className="stat-card"
+                  onClick={() => handleCardFilter('pending')}
+                  style={{ cursor: 'pointer', outline: activeCardFilter === 'pending' ? '2px solid #f59e0b' : 'none' }}
+                  title="Click to show pending bills only"
+                >
+                  <div className="stat-icon-wrapper"><FontAwesomeIcon icon={faClock} className="stat-icon" /></div>
+                  <div className="stat-number">{pendingCount}</div>
+                  <div className="stat-label">Pending Bills {activeCardFilter === 'pending' ? '✓' : ''}</div>
+                </div>
+              </motion.div>
+            </Col>
             <Col lg={3} md={6}><motion.div variants={itemVariants}><div className="stat-card"><div className="stat-icon-wrapper"><FontAwesomeIcon icon={faMoneyCheckAlt} className="stat-icon" /></div><div className="stat-number">{formatCurrency(totalOverallReceived)}</div><div className="stat-label">Total Collected</div></div></motion.div></Col>
             <Col lg={3} md={6}><motion.div variants={itemVariants}><div className="stat-card"><div className="stat-icon-wrapper"><FontAwesomeIcon icon={faMoneyBillWave} className="stat-icon" /></div><div className="stat-number">{formatCurrency(totalOverallPending)}</div><div className="stat-label">Pending Amount</div></div></motion.div></Col>
           </Row>
@@ -380,9 +468,9 @@ const Payment = () => {
                           <td style={{fontWeight: 700}}>{item.recordNo}</td>
                           <td>{item.customerName}</td>
                           <td style={{color:'var(--text-secondary)'}}>{item.vendor}</td>
-                          <td style={{fontWeight: 800, color:'#10b981'}}>₹{item.pAmount.toLocaleString()} <small className="text-muted d-block" style={{fontSize:'0.7rem'}}>{item.time}</small></td>
+                          <td style={{fontWeight: 800, color:'#10b981'}}>₹{item.pAmount.toLocaleString()} {item.time && <small className="text-muted d-block" style={{fontSize:'0.7rem'}}>{item.time}</small>}</td>
                           <td style={{fontWeight: 700, color: item.docBalance > 0 ? '#f59e0b' : '#10b981'}}>₹{item.docBalance.toLocaleString()}</td>
-                          <td className="text-muted" style={{fontSize: '0.85rem'}}>{item.note}</td>
+                          <td className="text-muted" style={{fontSize: '0.85rem', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}} title={item.note}>{item.note && item.note !== '-' ? item.note : <span style={{opacity:0.35}}>—</span>}</td>
                           <td>{getStatusBadge(item.status)}</td>
                           <td className="text-center">
                             <button className="circle-btn view" onClick={(e) => { e.stopPropagation(); handleView(item); }} title="View Details">
@@ -434,7 +522,7 @@ const Payment = () => {
                     <div style={{gridColumn: '1 / -1'}}>
                       <h6 className="receipt-section-title"><FontAwesomeIcon icon={faFileAlt}/> General Information</h6>
                       <div className="d-flex flex-wrap gap-3">
-                        <div className="info-block" style={{flex: 1}}><div className="info-lbl">Date & Time</div><div className="info-val">{new Date(currentPayment.date).toLocaleDateString('en-GB')} | {currentPayment.time}</div></div>
+                        <div className="info-block" style={{flex: 1}}><div className="info-lbl">Date & Time</div><div className="info-val">{new Date(currentPayment.date).toLocaleDateString('en-GB')}{currentPayment.time ? ` | ${currentPayment.time}` : ''}</div></div>
                         <div className="info-block" style={{flex: 1}}><div className="info-lbl">Type</div><div className="info-val">{currentPayment.recordType}</div></div>
                         <div className="info-block" style={{flex: 1}}><div className="info-lbl">Record Number</div><div className="info-val">{currentPayment.recordNo}</div></div>
                         <div className="info-block" style={{flex: 1}}><div className="info-lbl">Reference</div><div className="info-val">{currentPayment.reference}</div></div>
@@ -456,7 +544,7 @@ const Payment = () => {
                       <div className="d-flex flex-wrap gap-3">
                         <div className="info-block" style={{flex: 1}}><div className="info-lbl">Deed Type</div><div className="info-val">{currentPayment.deed}</div></div>
                         <div className="info-block" style={{flex: 1}}><div className="info-lbl">Plot/TP No</div><div className="info-val">{currentPayment.plotNo} / {currentPayment.tpNo}</div></div>
-                        <div className="info-block" style={{flex: 2}}><div className="info-lbl">Payment Note / Description</div><div className="info-val text-muted italic">{currentPayment.note}</div></div>
+                        <div className="info-block" style={{flex: 2}}><div className="info-lbl">Payment Note / Description</div><div className="info-val" style={{fontStyle:'italic', color: currentPayment.note && currentPayment.note !== '-' ? '#1e293b' : '#94a3b8'}}>{currentPayment.note && currentPayment.note !== '-' ? currentPayment.note : 'No note provided'}</div></div>
                       </div>
                     </div>
                   </div>

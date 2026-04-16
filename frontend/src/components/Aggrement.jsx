@@ -22,7 +22,10 @@ const dummyAgreementData = [
   { id: 5, date: "2024-10-20", vendor: "Vendor A", customerName: "Charlie Brown", reference: "Vendor A", agreementType: "Rental Agreement", tpNo: "TP005", office: "Office 2", plotNo: "11111", nagar: "Nagar 1", fieldVisit: "Yes", docNo: "DOC005", returnDocument: "No", editFee: 8000, stamp: 16000, others: 2500, totalFee: 26500, received: 26500, balance: 0, writingFee: 4000, ddCommission: 800, status: "Completed" }
 ];
 
-const agreementTypes = ["Sale Agreement", "Rental Agreement", "Partnership Agreement", "Lease Agreement", "Service Agreement"];
+const agreementTypes = [
+  "Sale Agreement", "Rental Agreement", "Partnership Agreement", "Lease Agreement", "Service Agreement",
+  "Uruthimozli Aggrement", "Pana Petru Rasithi Aggrement", "Contract Aggrement"
+];
 
 const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };
 const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100, damping: 15 } } };
@@ -44,12 +47,15 @@ const Aggrement = () => {
   const [filters, setFilters] = useState({ vendor: "", agreementType: "", date: "", status: "" });
   const [sortOption, setSortOption] = useState("date-desc");
   const [referenceType, setReferenceType] = useState("vendor");
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [printMonth, setPrintMonth] = useState(new Date().getMonth() + 1);
+  const [printYear, setPrintYear] = useState(new Date().getFullYear());
 
   const [clients, setClients] = useState([]);
   const [formData, setFormData] = useState({
     date: "", vendor: "", customerName: "", client: "", reference: "", agreementType: "", tpNo: "",
     office: "", plotNo: "", nagar: "", fieldVisit: "No", docNo: "", returnDocument: "No",
-    editFee: "", stamp: "", others: "", totalFee: "", received: "", balance: "", writingFee: "", ddCommission: "", newPayment: "", paymentNote: ""
+    stamp: "", totalFee: "", received: "", balance: "", writingFee: "", newPayment: "", paymentNote: ""
   });
 
   const totalAgreements = agreementData.length;
@@ -84,14 +90,11 @@ const Aggrement = () => {
         fieldVisit: d.fieldVisit || "No",
         docNo: d.docNo || "",
         returnDocument: d.returnDocument || "No",
-        editFee: d.editFee || 0,
         stamp: d.stamp || 0,
-        others: d.others || 0,
         totalFee: d.totalFee || 0,
         received: d.received || 0,
         balance: d.balance || 0,
         writingFee: d.writingFee || 0,
-        ddCommission: d.ddCommission || 0,
         status: d.status || "Pending"
       }));
       setAgreementData(formatted);
@@ -137,7 +140,7 @@ const Aggrement = () => {
 
   const handleAddNew = () => {
     setIsEdit(false); setCurrentAgreement(null); setReferenceType("vendor");
-    setFormData({ date: "", vendor: "", customerName: "", client: "", reference: "", agreementType: "", tpNo: "", office: "", plotNo: "", nagar: "", fieldVisit: "No", docNo: "", returnDocument: "No", editFee: "", stamp: "", others: "", totalFee: "", received: "", balance: "", writingFee: "", ddCommission: "", newPayment: "", paymentNote: "" });
+    setFormData({ date: "", vendor: "", customerName: "", client: "", reference: "", agreementType: "", tpNo: "", office: "", plotNo: "", nagar: "", fieldVisit: "No", docNo: "", returnDocument: "No", stamp: "", totalFee: "", received: "", balance: "", writingFee: "", newPayment: "", paymentNote: "" });
     setShowModal(true);
   };
   const handleEdit = (agg, e) => {
@@ -146,9 +149,9 @@ const Aggrement = () => {
       date: agg.date, vendor: agg.vendor, customerName: agg.customerName, client: agg.client?._id || agg.client || "", reference: agg.reference, 
       agreementType: agg.agreementType, tpNo: agg.tpNo, office: agg.office, plotNo: agg.plotNo, nagar: agg.nagar, 
       fieldVisit: agg.fieldVisit, docNo: agg.docNo, returnDocument: agg.returnDocument, 
-      editFee: agg.editFee.toString(), stamp: agg.stamp.toString(), others: agg.others.toString(), 
+      stamp: agg.stamp.toString(),
       totalFee: agg.totalFee.toString(), received: agg.received.toString(), balance: agg.balance.toString(), 
-      writingFee: agg.writingFee.toString(), ddCommission: agg.ddCommission.toString(),
+      writingFee: agg.writingFee.toString(),
       newPayment: "", paymentNote: ""
     });
     setShowModal(true);
@@ -166,11 +169,8 @@ const Aggrement = () => {
   };
   
   const handleSave = async () => {
-    const editFee = parseFloat(formData.editFee) || 0;
     const stamp = parseFloat(formData.stamp) || 0;
-    const others = parseFloat(formData.others) || 0;
     const writingFee = parseFloat(formData.writingFee) || 0;
-    const ddCommission = parseFloat(formData.ddCommission) || 0;
     const received = parseFloat(formData.received) || 0;
     const newPayment = parseFloat(formData.newPayment) || 0;
 
@@ -179,7 +179,7 @@ const Aggrement = () => {
        date: formData.date || new Date().toISOString(),
        documentType: 'Agreement',
        recordNo: formData.tpNo || `AGR-${Date.now()}`,
-       editFee, stamp, others, writingFee, ddCommission,
+       stamp, writingFee,
        amount: 0, commission: 0
     };
     
@@ -233,6 +233,45 @@ const Aggrement = () => {
   const handleFilterChange = (field, value) => setFilters({ ...filters, [field]: value });
   const clearFilters = () => { setFilters({ vendor: "", agreementType: "", date: "", status: "" }); setSearchTerm(""); setSortOption("date-desc"); };
 
+  const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const printYearOptions = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+
+  const handlePrint = () => {
+    const monthDocs = agreementData.filter(d => {
+      if (!d.date) return false;
+      const dt = new Date(d.date);
+      return dt.getMonth() + 1 === printMonth && dt.getFullYear() === printYear;
+    });
+    const monthLabel = `${MONTH_NAMES[printMonth - 1]} ${printYear}`;
+    const rows = monthDocs.map((d, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${d.date ? new Date(d.date).toLocaleDateString('en-GB') : '-'}</td>
+        <td>${d.agreementType || '-'}</td>
+        <td>${d.customerName || '-'}</td>
+        <td>${d.vendor || '-'}</td>
+        <td>&#8377;${Number(d.stamp||0).toLocaleString()}</td>
+        <td>&#8377;${Number(d.writingFee||0).toLocaleString()}</td>
+        <td>&#8377;${Number(d.totalFee||0).toLocaleString()}</td>
+        <td>&#8377;${Number(d.received||0).toLocaleString()}</td>
+        <td style="color:${d.balance>0?'#dc2626':'#16a34a'}">&#8377;${Number(d.balance||0).toLocaleString()}</td>
+        <td>${d.status || '-'}</td>
+      </tr>`).join('');
+    const win = window.open('', '_blank');
+    win.document.write(`<!DOCTYPE html><html><head><title>Agreement Report – ${monthLabel}</title>
+      <style>body{font-family:Arial,sans-serif;padding:24px;color:#1e293b}h2{color:#d97706}table{width:100%;border-collapse:collapse;margin-top:16px;font-size:13px}th{background:#0f172a;color:#fff;padding:10px 8px;text-align:left}td{padding:9px 8px;border-bottom:1px solid #e2e8f0}tr:nth-child(even){background:#f8fafc}.footer{margin-top:20px;font-size:12px;color:#94a3b8}</style>
+      </head><body>
+      <h2>Agreement Records – ${monthLabel}</h2>
+      <p>Total records: <strong>${monthDocs.length}</strong> &nbsp;|&nbsp; Printed: <strong>${new Date().toLocaleString('en-GB')}</strong></p>
+      <table><thead><tr><th>#</th><th>Date</th><th>Agreement Type</th><th>Customer</th><th>Vendor</th><th>Stamp</th><th>Writing Fee</th><th>Total Fee</th><th>Received</th><th>Balance</th><th>Status</th></tr></thead><tbody>${rows || '<tr><td colspan=11 style="text-align:center;padding:20px;color:#94a3b8">No records for this month</td></tr>'}</tbody></table>
+      <div class="footer">AJ Law Firm — Confidential Document</div>
+      </body></html>`);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); }, 400);
+    setShowPrintModal(false);
+  };
+
   const getStatusBadge = (status) => {
     const config = status === "Completed" ? { bg: "#10b981", icon: faCheckCircle } : { bg: "#f59e0b", icon: faClock };
     return (
@@ -278,6 +317,23 @@ const Aggrement = () => {
           .layout-page::before { content: "🤝"; position: fixed; font-size: 280px; opacity: 0.02; bottom: 100px; right: -50px; z-index: 0; transform: rotate(-25deg); pointer-events: none; }
           .main-content { margin-left: 280px; padding: 40px; position: relative; z-index: 1; }
           @media (max-width: 991px) { .main-content { margin-left: 0; padding: 20px; } }
+          @media (max-width: 767px) {
+            .page-title { font-size: 1.6rem !important; }
+            .stat-number { font-size: 1.7rem !important; }
+            .stat-card { padding: 18px 12px; }
+            .controls-bar { padding: 16px; margin-bottom: 20px; }
+            .search-bar, .filter-select { padding: 12px 14px; font-size: 0.88rem; }
+            .search-bar { padding-left: 44px; }
+            .add-record-btn { padding: 12px 20px; width: 100%; justify-content: center; }
+          }
+          @media (max-width: 575px) {
+            .main-content { padding: 12px; }
+            .page-title { font-size: 1.3rem !important; }
+            .stat-number { font-size: 1.4rem !important; }
+            .stat-icon-wrapper { width: 44px; height: 44px; margin-bottom: 12px; }
+            .stat-icon { font-size: 1.2rem; }
+            .stat-label { font-size: 0.75rem; }
+          }
 
           .page-header { margin-bottom: 24px; }
           .page-title { font-family: 'Playfair Display', serif; font-size: 2.2rem; font-weight: 700; color: var(--highlight); margin-bottom: 8px; letter-spacing: -0.5px; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
@@ -401,7 +457,7 @@ const Aggrement = () => {
                 <Col lg={1} md={4}>
                   <button 
                     className="filter-toggle" 
-                    onClick={() => window.print()}
+                    onClick={() => setShowPrintModal(true)}
                     style={{width: '100%', height: '48px', color: '#10b981', border: '1px solid #10b981', background: 'transparent'}}
                     title="Print Current View"
                   >
@@ -486,11 +542,8 @@ const Aggrement = () => {
 
                     <h5 className="mt-5 mb-3 fw-bold w-100" style={{color: '#475569'}}><FontAwesomeIcon icon={faWallet} className="me-2"/> Invoice Breakdown</h5>
                     
-                    <Col md={4}><Form.Group><Form.Label className="form-label-modern">Edit Fee</Form.Label><Form.Control type="text" className="form-control-modern" value={formatCurrency(currentAgreement.editFee)} disabled /></Form.Group></Col>
-                    <Col md={4}><Form.Group><Form.Label className="form-label-modern">Stamp</Form.Label><Form.Control type="text" className="form-control-modern" value={formatCurrency(currentAgreement.stamp)} disabled /></Form.Group></Col>
-                    <Col md={4}><Form.Group><Form.Label className="form-label-modern">Others</Form.Label><Form.Control type="text" className="form-control-modern" value={formatCurrency(currentAgreement.others)} disabled /></Form.Group></Col>
-                    <Col md={6}><Form.Group><Form.Label className="form-label-modern">Writing Fee (Non-billable)</Form.Label><Form.Control type="text" className="form-control-modern" value={formatCurrency(currentAgreement.writingFee)} disabled /></Form.Group></Col>
-                    <Col md={6}><Form.Group><Form.Label className="form-label-modern">DD Commission (Non-billable)</Form.Label><Form.Control type="text" className="form-control-modern" value={formatCurrency(currentAgreement.ddCommission)} disabled /></Form.Group></Col>
+                    <Col md={6}><Form.Group><Form.Label className="form-label-modern">Stamp Fee</Form.Label><Form.Control type="text" className="form-control-modern" value={formatCurrency(currentAgreement.stamp)} disabled /></Form.Group></Col>
+                    <Col md={6}><Form.Group><Form.Label className="form-label-modern">Writing Fee</Form.Label><Form.Control type="text" className="form-control-modern" value={formatCurrency(currentAgreement.writingFee)} disabled /></Form.Group></Col>
                     
                     {/* Payment History Section */}
                     {currentAgreement.payments && currentAgreement.payments.length > 0 && (
@@ -574,17 +627,16 @@ const Aggrement = () => {
                       <Col md={6}><Form.Group><Form.Label className="form-label-modern">Return Doc</Form.Label><Form.Select className="form-control-modern" value={formData.returnDocument} onChange={(e) => setFormData({ ...formData, returnDocument: e.target.value })}><option value="Yes">Yes</option><option value="No">No</option></Form.Select></Form.Group></Col>
                     </Row>
                     <Row className="g-3 mt-1">
-                      <Col md={3}><Form.Group><Form.Label className="form-label-modern">Edit Fee (₹)</Form.Label><Form.Control type="number" className="form-control-modern" placeholder="0" value={formData.editFee} onChange={(e) => setFormData({ ...formData, editFee: e.target.value })} /></Form.Group></Col>
-                      <Col md={3}><Form.Group><Form.Label className="form-label-modern">Stamp (₹)</Form.Label><Form.Control type="number" className="form-control-modern" placeholder="0" value={formData.stamp} onChange={(e) => setFormData({ ...formData, stamp: e.target.value })} /></Form.Group></Col>
-                      <Col md={3}><Form.Group><Form.Label className="form-label-modern">Others (₹)</Form.Label><Form.Control type="number" className="form-control-modern" placeholder="0" value={formData.others} onChange={(e) => setFormData({ ...formData, others: e.target.value })} /></Form.Group></Col>
+                      <Col md={4}><Form.Group><Form.Label className="form-label-modern">Stamp Fee (₹)</Form.Label><Form.Control type="number" className="form-control-modern" placeholder="0" value={formData.stamp} onChange={(e) => setFormData({ ...formData, stamp: e.target.value })} /></Form.Group></Col>
+                      <Col md={4}><Form.Group><Form.Label className="form-label-modern">Writing Fee (₹)</Form.Label><Form.Control type="number" className="form-control-modern" placeholder="0" value={formData.writingFee} onChange={(e) => setFormData({ ...formData, writingFee: e.target.value })} /></Form.Group></Col>
                       {isEdit ? (
                         <>
-                          <Col md={3}><Form.Group><Form.Label className="form-label-modern text-muted">Paid (₹)</Form.Label><Form.Control type="text" className="form-control-modern" value={formatCurrency(formData.received)} disabled /></Form.Group></Col>
-                          <Col md={3}><Form.Group><Form.Label className="form-label-modern text-success">New Pay (₹)</Form.Label><Form.Control type="number" className="form-control-modern" style={{borderColor:'#10b981'}} placeholder="0" value={formData.newPayment} onChange={(e) => setFormData({ ...formData, newPayment: e.target.value })} /></Form.Group></Col>
+                          <Col md={4}><Form.Group><Form.Label className="form-label-modern text-muted">Paid (₹)</Form.Label><Form.Control type="text" className="form-control-modern" value={formatCurrency(formData.received)} disabled /></Form.Group></Col>
+                          <Col md={6}><Form.Group><Form.Label className="form-label-modern text-success">New Pay (₹)</Form.Label><Form.Control type="number" className="form-control-modern" style={{borderColor:'#10b981'}} placeholder="0" value={formData.newPayment} onChange={(e) => setFormData({ ...formData, newPayment: e.target.value })} /></Form.Group></Col>
                           <Col md={6}><Form.Group><Form.Label className="form-label-modern">Payment Note</Form.Label><Form.Control type="text" className="form-control-modern" placeholder="e.g. Second installment" value={formData.paymentNote} onChange={(e) => setFormData({ ...formData, paymentNote: e.target.value })} /></Form.Group></Col>
                         </>
                       ) : (
-                        <Col md={3}>
+                        <Col md={4}>
                           <Form.Group>
                             <Form.Label className="form-label-modern text-success">Actually Received (₹)</Form.Label>
                             <Form.Control type="number" className="form-control-modern" style={{borderColor:'#10b981'}} placeholder="0" value={formData.received} onChange={(e) => setFormData({ ...formData, received: e.target.value })} />
@@ -613,17 +665,12 @@ const Aggrement = () => {
                       </div>
                     )}
 
-                    <Row className="mt-2">
-                      <Col md={6}><Form.Group><Form.Label className="form-label-modern">Writing Fee (₹)</Form.Label><Form.Control type="number" className="form-control-modern" placeholder="0" value={formData.writingFee} onChange={(e) => setFormData({ ...formData, writingFee: e.target.value })} /></Form.Group></Col>
-                      <Col md={6}><Form.Group><Form.Label className="form-label-modern">DD Commission (₹)</Form.Label><Form.Control type="number" className="form-control-modern" placeholder="0" value={formData.ddCommission} onChange={(e) => setFormData({ ...formData, ddCommission: e.target.value })} /></Form.Group></Col>
-                    </Row>
-
                     <Row className="mt-4 mb-2">
                        <Col md={6}>
-                         <Alert className="total-alert border-0" style={{background:'#ffffff'}}><FontAwesomeIcon icon={faMoneyBillWave} className="me-2" /> Cost: {formatCurrency((parseFloat(formData.editFee)||0) + (parseFloat(formData.stamp)||0) + (parseFloat(formData.others)||0))}</Alert>
+                         <Alert className="total-alert border-0" style={{background:'#ffffff'}}><FontAwesomeIcon icon={faMoneyBillWave} className="me-2" /> Cost: {formatCurrency((parseFloat(formData.stamp)||0))}</Alert>
                        </Col>
                        <Col md={6}>
-                         <Alert className="total-alert border-0" style={{background:'#ffffff', color: '#ef4444'}}><FontAwesomeIcon icon={faBalanceScale} className="me-2" /> Due Balance: {formatCurrency(((parseFloat(formData.editFee)||0) + (parseFloat(formData.stamp)||0) + (parseFloat(formData.others)||0)) - (parseFloat(formData.received)||0) - (parseFloat(formData.newPayment)||0))}</Alert>
+                         <Alert className="total-alert border-0" style={{background:'#ffffff', color: '#ef4444'}}><FontAwesomeIcon icon={faBalanceScale} className="me-2" /> Due Balance: {formatCurrency((parseFloat(formData.stamp)||0) - (parseFloat(formData.received)||0) - (parseFloat(formData.newPayment)||0))}</Alert>
                        </Col>
                     </Row>
                   </Form>
@@ -637,6 +684,39 @@ const Aggrement = () => {
           )}
         </AnimatePresence>
       </div>
+
+        {/* ═══ PRINT MONTH PICKER MODAL ═══ */}
+        <Modal show={showPrintModal} onHide={() => setShowPrintModal(false)} centered className="details-modal">
+          <Modal.Header closeButton style={{background:'linear-gradient(135deg,#0f172a,#1e293b)',color:'white',borderRadius:'28px 28px 0 0'}}>
+            <Modal.Title style={{fontFamily:"'Playfair Display',serif",fontSize:'1.3rem'}}>
+              <FontAwesomeIcon icon={faPrint} className="me-2 text-warning" /> Print Agreement Report
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body style={{padding:'28px 32px'}}>
+            <p style={{color:'#475569',marginBottom:20}}>Select the month and year to print Agreement records for:</p>
+            <Row className="g-3">
+              <Col md={6}>
+                <Form.Label className="form-label-modern">Month</Form.Label>
+                <select className="form-control-modern" value={printMonth} onChange={e => setPrintMonth(Number(e.target.value))}>
+                  {MONTH_NAMES.map((m,i) => <option key={i} value={i+1}>{m}</option>)}
+                </select>
+              </Col>
+              <Col md={6}>
+                <Form.Label className="form-label-modern">Year</Form.Label>
+                <select className="form-control-modern" value={printYear} onChange={e => setPrintYear(Number(e.target.value))}>
+                  {printYearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </Col>
+            </Row>
+          </Modal.Body>
+          <Modal.Footer className="border-0 px-4 pb-4">
+            <Button variant="light" className="px-4 py-2 border" onClick={() => setShowPrintModal(false)} style={{borderRadius:'12px',fontWeight:600}}>Cancel</Button>
+            <button className="btn-gold w-auto px-4 py-2 d-inline-flex" onClick={handlePrint} style={{borderRadius:'12px'}}>
+              <FontAwesomeIcon icon={faPrint} className="me-2" /> Print {MONTH_NAMES[printMonth-1]} {printYear}
+            </button>
+          </Modal.Footer>
+        </Modal>
+
     </div>
   );
 };

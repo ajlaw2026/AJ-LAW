@@ -447,6 +447,29 @@ const Vendor = () => {
             min-height: 100vh;
           }
           @media (max-width: 991px) { .main-content { margin-left: 0; padding: 20px; } }
+          @media (max-width: 767px) {
+            .page-title { font-size: 1.7rem !important; }
+            .custom-tab-btn { padding: 10px 18px; font-size: 0.85rem; }
+            .controls-bar { padding: 16px; margin-bottom: 24px; }
+            .modern-input, .modern-select { padding: 12px 14px; font-size: 0.88rem; }
+            .modern-btn { padding: 12px 16px; font-size: 0.88rem; }
+            .data-card { padding: 20px; }
+            .card-title { font-size: 1.25rem; }
+            .modal-info-row { flex-direction: column; gap: 15px; padding: 16px 20px; }
+            .modal-info-item { min-width: 100%; }
+            .section-title { font-size: 1.2rem; margin: 30px 0 15px; }
+            .billing-item { padding: 16px; }
+            .grand-summary { grid-template-columns: 1fr; gap: 16px; padding: 24px; }
+          }
+          @media (max-width: 575px) {
+            .main-content { padding: 12px; }
+            .page-title { font-size: 1.4rem !important; }
+            .custom-tabs { flex-direction: column; width: 100%; }
+            .custom-tab-btn { width: 100%; border-radius: 10px; }
+            .data-card .actions { opacity: 1; top: 12px; right: 12px; }
+            .circle-btn { width: 32px; height: 32px; font-size: 0.8rem; }
+            .card-stats { grid-template-columns: 1fr; gap: 10px; }
+          }
 
           .page-header { margin-bottom: 24px; }
           .page-title {
@@ -557,8 +580,8 @@ const Vendor = () => {
           .circle-btn.del:hover { background: #fef2f2; color: #ef4444; }
 
           .card-title { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 700; color: #0f172a; margin-bottom: 8px; padding-right: 40px; }
-          .card-subtitle { font-size: 0.9rem; color: #64748b; font-weight: 500; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
-          .card-subtitle svg { color: #cbd5e1; }
+          .card-subtitle { font-size: 0.9rem; color: #878b64ff; font-weight: 500; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+          .card-subtitle svg { color: #ffb031ff; }
           
           .card-stats {
             background: #f8fafc; border-radius: 16px; padding: 16px; 
@@ -645,7 +668,7 @@ const Vendor = () => {
             transition: all 0.2s ease; cursor: pointer;
           }
           .modal-tab-pill.active {
-            background: #ffffff; color: #0f172a; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            background: #ffc525ff; color: #0f172a; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
           }
           .modal-tab-pill:hover:not(.active) { color: #334155; transform: translateY(-1px); }
           .summary-col { display: flex; flex-direction: column; gap: 8px; }

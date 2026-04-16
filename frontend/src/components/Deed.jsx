@@ -44,6 +44,9 @@ const Deed = () => {
   const [filters, setFilters] = useState({ vendor: "", deed: "", date: "", status: "" });
   const [sortOption, setSortOption] = useState("date-desc");
   const [referenceType, setReferenceType] = useState("vendor");
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [printMonth, setPrintMonth] = useState(new Date().getMonth() + 1);
+  const [printYear, setPrintYear] = useState(new Date().getFullYear());
 
   const [clients, setClients] = useState([]);
   const [formData, setFormData] = useState({
@@ -233,6 +236,48 @@ const Deed = () => {
   const handleFilterChange = (field, value) => setFilters({ ...filters, [field]: value });
   const clearFilters = () => { setFilters({ vendor: "", deed: "", date: "", status: "" }); setSearchTerm(""); setSortOption("date-desc"); };
 
+  const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const printYearOptions = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+
+  const handlePrint = () => {
+    const monthDocs = deedData.filter(d => {
+      if (!d.date) return false;
+      const dt = new Date(d.date);
+      return dt.getMonth() + 1 === printMonth && dt.getFullYear() === printYear;
+    });
+    const monthLabel = `${MONTH_NAMES[printMonth - 1]} ${printYear}`;
+    const rows = monthDocs.map((d, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${d.date ? new Date(d.date).toLocaleDateString('en-GB') : '-'}</td>
+        <td>${d.deed || '-'}</td>
+        <td>${d.customerName || '-'}</td>
+        <td>${d.tpNo || '-'}</td>
+        <td>${d.vendor || '-'}</td>
+        <td>&#8377;${Number(d.editFee||0).toLocaleString()}</td>
+        <td>&#8377;${Number(d.stamp||0).toLocaleString()}</td>
+        <td>&#8377;${Number(d.writingFee||0).toLocaleString()}</td>
+        <td>&#8377;${Number(d.ddCommission||0).toLocaleString()}</td>
+        <td>&#8377;${Number(d.totalFee||0).toLocaleString()}</td>
+        <td>&#8377;${Number(d.received||0).toLocaleString()}</td>
+        <td style="color:${d.balance>0?'#dc2626':'#16a34a'}">&#8377;${Number(d.balance||0).toLocaleString()}</td>
+        <td>${d.status || '-'}</td>
+      </tr>`).join('');
+    const win = window.open('', '_blank');
+    win.document.write(`<!DOCTYPE html><html><head><title>Deed Report – ${monthLabel}</title>
+      <style>body{font-family:Arial,sans-serif;padding:24px;color:#1e293b}h2{color:#d97706}table{width:100%;border-collapse:collapse;margin-top:16px;font-size:12px}th{background:#0f172a;color:#fff;padding:9px 7px;text-align:left}td{padding:8px 7px;border-bottom:1px solid #e2e8f0}tr:nth-child(even){background:#f8fafc}.footer{margin-top:20px;font-size:12px;color:#94a3b8}</style>
+      </head><body>
+      <h2>Deed Records – ${monthLabel}</h2>
+      <p>Total records: <strong>${monthDocs.length}</strong> &nbsp;|&nbsp; Printed: <strong>${new Date().toLocaleString('en-GB')}</strong></p>
+      <table><thead><tr><th>#</th><th>Date</th><th>Deed Type</th><th>Customer</th><th>TP No</th><th>Vendor</th><th>Edit Fee</th><th>Stamp</th><th>Writing Fee</th><th>DD Comm.</th><th>Total Fee</th><th>Received</th><th>Balance</th><th>Status</th></tr></thead><tbody>${rows || '<tr><td colspan=14 style="text-align:center;padding:20px;color:#94a3b8">No records for this month</td></tr>'}</tbody></table>
+      <div class="footer">AJ Law Firm — Confidential Document</div>
+      </body></html>`);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); }, 400);
+    setShowPrintModal(false);
+  };
+
   const getStatusBadge = (status) => {
     const config = status === "Completed" ? { bg: "#10b981", icon: faCheckCircle } : { bg: "#f59e0b", icon: faClock };
     return (
@@ -279,6 +324,23 @@ const Deed = () => {
           .layout-page::before { content: "📜"; position: fixed; font-size: 280px; opacity: 0.02; bottom: 100px; right: -50px; z-index: 0; transform: rotate(-25deg); pointer-events: none; }
           .main-content { margin-left: 280px; padding: 40px; position: relative; z-index: 1; }
           @media (max-width: 991px) { .main-content { margin-left: 0; padding: 20px; } }
+          @media (max-width: 767px) {
+            .page-title { font-size: 1.6rem !important; }
+            .stat-number { font-size: 1.7rem !important; }
+            .stat-card { padding: 18px 12px; }
+            .controls-bar { padding: 16px; margin-bottom: 20px; }
+            .search-bar, .filter-select { padding: 12px 14px; font-size: 0.88rem; }
+            .search-bar { padding-left: 44px; }
+            .add-record-btn { padding: 12px 20px; width: 100%; justify-content: center; }
+          }
+          @media (max-width: 575px) {
+            .main-content { padding: 12px; }
+            .page-title { font-size: 1.3rem !important; }
+            .stat-number { font-size: 1.4rem !important; }
+            .stat-icon-wrapper { width: 44px; height: 44px; margin-bottom: 12px; }
+            .stat-icon { font-size: 1.2rem; }
+            .stat-label { font-size: 0.75rem; }
+          }
 
           .page-header { margin-bottom: 24px; }
           .page-title { font-family: 'Playfair Display', serif; font-size: 2.2rem; font-weight: 700; color: var(--highlight); margin-bottom: 8px; letter-spacing: -0.5px; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
@@ -403,7 +465,7 @@ const Deed = () => {
                 <Col lg={1} md={4}>
                   <button 
                     className="filter-toggle" 
-                    onClick={() => window.print()}
+                    onClick={() => setShowPrintModal(true)}
                     style={{width: '100%', height: '48px', color: '#10b981', border: '1px solid #10b981', background: 'transparent'}}
                     title="Print Current View"
                   >
@@ -490,8 +552,8 @@ const Deed = () => {
                     <Col md={4}><Form.Group><Form.Label className="form-label-modern">Edit Fee</Form.Label><Form.Control type="text" className="form-control-modern" value={formatCurrency(currentDeed.editFee)} disabled /></Form.Group></Col>
                     <Col md={4}><Form.Group><Form.Label className="form-label-modern">Stamp</Form.Label><Form.Control type="text" className="form-control-modern" value={formatCurrency(currentDeed.stamp)} disabled /></Form.Group></Col>
                     <Col md={4}><Form.Group><Form.Label className="form-label-modern">Others</Form.Label><Form.Control type="text" className="form-control-modern" value={formatCurrency(currentDeed.others)} disabled /></Form.Group></Col>
-                    <Col md={6}><Form.Group><Form.Label className="form-label-modern">Writing Fee (Non-billable)</Form.Label><Form.Control type="text" className="form-control-modern" value={formatCurrency(currentDeed.writingFee)} disabled /></Form.Group></Col>
-                    <Col md={6}><Form.Group><Form.Label className="form-label-modern">DD Commission (Non-billable)</Form.Label><Form.Control type="text" className="form-control-modern" value={formatCurrency(currentDeed.ddCommission)} disabled /></Form.Group></Col>
+                    <Col md={6}><Form.Group><Form.Label className="form-label-modern">Writing Fee</Form.Label><Form.Control type="text" className="form-control-modern" value={formatCurrency(currentDeed.writingFee)} disabled /></Form.Group></Col>
+                    <Col md={6}><Form.Group><Form.Label className="form-label-modern">DD Commission</Form.Label><Form.Control type="text" className="form-control-modern" value={formatCurrency(currentDeed.ddCommission)} disabled /></Form.Group></Col>
                     
                     {/* Payment History Section */}
                     {currentDeed.payments && currentDeed.payments.length > 0 && (
@@ -574,18 +636,25 @@ const Deed = () => {
                       <Col md={6}><Form.Group><Form.Label className="form-label-modern">Field Visit</Form.Label><Form.Select className="form-control-modern" value={formData.fieldVisit} onChange={(e) => setFormData({ ...formData, fieldVisit: e.target.value })}><option value="Yes">Yes</option><option value="No">No</option></Form.Select></Form.Group></Col>
                       <Col md={6}><Form.Group><Form.Label className="form-label-modern">Return Doc</Form.Label><Form.Select className="form-control-modern" value={formData.returnDocument} onChange={(e) => setFormData({ ...formData, returnDocument: e.target.value })}><option value="Yes">Yes</option><option value="No">No</option></Form.Select></Form.Group></Col>
                     </Row>
+                    {/* Row 1: Edit Fee | Stamp | Others | DD Commission (Add) or Paid (Edit) */}
                     <Row className="g-3 mt-1">
                       <Col md={3}><Form.Group><Form.Label className="form-label-modern">Edit Fee (₹)</Form.Label><Form.Control type="number" className="form-control-modern" placeholder="0" value={formData.editFee} onChange={(e) => setFormData({ ...formData, editFee: e.target.value })} /></Form.Group></Col>
                       <Col md={3}><Form.Group><Form.Label className="form-label-modern">Stamp (₹)</Form.Label><Form.Control type="number" className="form-control-modern" placeholder="0" value={formData.stamp} onChange={(e) => setFormData({ ...formData, stamp: e.target.value })} /></Form.Group></Col>
                       <Col md={3}><Form.Group><Form.Label className="form-label-modern">Others (₹)</Form.Label><Form.Control type="number" className="form-control-modern" placeholder="0" value={formData.others} onChange={(e) => setFormData({ ...formData, others: e.target.value })} /></Form.Group></Col>
                       {isEdit ? (
-                        <>
-                          <Col md={3}><Form.Group><Form.Label className="form-label-modern text-muted">Paid (₹)</Form.Label><Form.Control type="text" className="form-control-modern" value={formatCurrency(formData.received)} disabled /></Form.Group></Col>
-                          <Col md={3}><Form.Group><Form.Label className="form-label-modern text-success">New Pay (₹)</Form.Label><Form.Control type="number" className="form-control-modern" style={{borderColor:'#10b981'}} placeholder="0" value={formData.newPayment} onChange={(e) => setFormData({ ...formData, newPayment: e.target.value })} /></Form.Group></Col>
-                          <Col md={6}><Form.Group><Form.Label className="form-label-modern">Payment Note</Form.Label><Form.Control type="text" className="form-control-modern" placeholder="e.g. Second installment" value={formData.paymentNote} onChange={(e) => setFormData({ ...formData, paymentNote: e.target.value })} /></Form.Group></Col>
-                        </>
+                        <Col md={3}><Form.Group><Form.Label className="form-label-modern text-muted">Paid (₹)</Form.Label><Form.Control type="text" className="form-control-modern" value={formatCurrency(formData.received)} disabled /></Form.Group></Col>
                       ) : (
-                        <Col md={3}>
+                        <Col md={3}><Form.Group><Form.Label className="form-label-modern">DD Commission (₹)</Form.Label><Form.Control type="number" className="form-control-modern" placeholder="0" value={formData.ddCommission} onChange={(e) => setFormData({ ...formData, ddCommission: e.target.value })} /></Form.Group></Col>
+                      )}
+                    </Row>
+
+                    {/* Row 2: Writing Fee | DD Commission (Edit) or Actually Received (Add) */}
+                    <Row className="g-3 mt-2">
+                      <Col md={6}><Form.Group><Form.Label className="form-label-modern">Writing Fee (₹)</Form.Label><Form.Control type="number" className="form-control-modern" placeholder="0" value={formData.writingFee} onChange={(e) => setFormData({ ...formData, writingFee: e.target.value })} /></Form.Group></Col>
+                      {isEdit ? (
+                        <Col md={6}><Form.Group><Form.Label className="form-label-modern">DD Commission (₹)</Form.Label><Form.Control type="number" className="form-control-modern" placeholder="0" value={formData.ddCommission} onChange={(e) => setFormData({ ...formData, ddCommission: e.target.value })} /></Form.Group></Col>
+                      ) : (
+                        <Col md={6}>
                           <Form.Group>
                             <Form.Label className="form-label-modern text-success">Actually Received (₹)</Form.Label>
                             <Form.Control type="number" className="form-control-modern" style={{borderColor:'#10b981'}} placeholder="0" value={formData.received} onChange={(e) => setFormData({ ...formData, received: e.target.value })} />
@@ -594,6 +663,7 @@ const Deed = () => {
                       )}
                     </Row>
 
+                    {/* Payment History (Edit only) */}
                     {isEdit && currentDeed.payments && currentDeed.payments.length > 0 && (
                       <div className="mt-4 p-3 rounded" style={{background: '#f8fafc', border: '1px solid #e2e8f0'}}>
                          <h6 className="fw-bold fs-6 mb-2"><FontAwesomeIcon icon={faHistory} /> Payment History</h6>
@@ -614,17 +684,20 @@ const Deed = () => {
                       </div>
                     )}
 
-                    <Row className="mt-2">
-                       <Col md={6}><Form.Group><Form.Label className="form-label-modern">Writing Fee (₹)</Form.Label><Form.Control type="number" className="form-control-modern" placeholder="0" value={formData.writingFee} onChange={(e) => setFormData({ ...formData, writingFee: e.target.value })} /></Form.Group></Col>
-                       <Col md={6}><Form.Group><Form.Label className="form-label-modern">DD Commission (₹)</Form.Label><Form.Control type="number" className="form-control-modern" placeholder="0" value={formData.ddCommission} onChange={(e) => setFormData({ ...formData, ddCommission: e.target.value })} /></Form.Group></Col>
-                    </Row>
+                    {/* New Pay + Payment Note — Edit mode only, below history */}
+                    {isEdit && (
+                      <Row className="g-3 mt-2">
+                        <Col md={6}><Form.Group><Form.Label className="form-label-modern text-success">New Pay (₹)</Form.Label><Form.Control type="number" className="form-control-modern" style={{borderColor:'#10b981'}} placeholder="0" value={formData.newPayment} onChange={(e) => setFormData({ ...formData, newPayment: e.target.value })} /></Form.Group></Col>
+                        <Col md={6}><Form.Group><Form.Label className="form-label-modern">Payment Note</Form.Label><Form.Control type="text" className="form-control-modern" placeholder="e.g. Second installment" value={formData.paymentNote} onChange={(e) => setFormData({ ...formData, paymentNote: e.target.value })} /></Form.Group></Col>
+                      </Row>
+                    )}
 
                     <Row className="mt-4 mb-2">
                        <Col md={6}>
-                         <Alert className="total-alert border-0" style={{background:'rgba(251,191,36,0.1)'}}><FontAwesomeIcon icon={faMoneyBillWave} className="me-2" /> Cost: {formatCurrency((parseFloat(formData.editFee)||0) + (parseFloat(formData.stamp)||0) + (parseFloat(formData.others)||0))}</Alert>
+                         <Alert className="total-alert border-0" style={{background:'rgba(251,191,36,0.1)'}}><FontAwesomeIcon icon={faMoneyBillWave} className="me-2" /> Cost: {formatCurrency((parseFloat(formData.editFee)||0) + (parseFloat(formData.stamp)||0) + (parseFloat(formData.others)||0) + (parseFloat(formData.writingFee)||0) + (parseFloat(formData.ddCommission)||0))}</Alert>
                        </Col>
                        <Col md={6}>
-                         <Alert className="total-alert border-0" style={{background:'rgba(239, 68, 68, 0.1)', color: '#ef4444'}}><FontAwesomeIcon icon={faBalanceScale} className="me-2" /> Due Balance: {formatCurrency(((parseFloat(formData.editFee)||0) + (parseFloat(formData.stamp)||0) + (parseFloat(formData.others)||0)) - (parseFloat(formData.received)||0) - (parseFloat(formData.newPayment)||0))}</Alert>
+                         <Alert className="total-alert border-0" style={{background:'rgba(239, 68, 68, 0.1)', color: '#ef4444'}}><FontAwesomeIcon icon={faBalanceScale} className="me-2" /> Due Balance: {formatCurrency(((parseFloat(formData.editFee)||0) + (parseFloat(formData.stamp)||0) + (parseFloat(formData.others)||0) + (parseFloat(formData.writingFee)||0) + (parseFloat(formData.ddCommission)||0)) - (parseFloat(formData.received)||0) - (parseFloat(formData.newPayment)||0))}</Alert>
                        </Col>
                     </Row>
                   </Form>
@@ -638,6 +711,39 @@ const Deed = () => {
           )}
         </AnimatePresence>
       </div>
+
+        {/* ═══ PRINT MONTH PICKER MODAL ═══ */}
+        <Modal show={showPrintModal} onHide={() => setShowPrintModal(false)} centered className="details-modal">
+          <Modal.Header closeButton style={{background:'linear-gradient(135deg,#0f172a,#1e293b)',color:'white',borderRadius:'28px 28px 0 0'}}>
+            <Modal.Title style={{fontFamily:"'Playfair Display',serif",fontSize:'1.3rem'}}>
+              <FontAwesomeIcon icon={faPrint} className="me-2 text-warning" /> Print Deed Report
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body style={{padding:'28px 32px'}}>
+            <p style={{color:'#475569',marginBottom:20}}>Select the month and year to print Deed records for:</p>
+            <Row className="g-3">
+              <Col md={6}>
+                <Form.Label className="form-label-modern">Month</Form.Label>
+                <select className="form-control-modern" value={printMonth} onChange={e => setPrintMonth(Number(e.target.value))}>
+                  {MONTH_NAMES.map((m,i) => <option key={i} value={i+1}>{m}</option>)}
+                </select>
+              </Col>
+              <Col md={6}>
+                <Form.Label className="form-label-modern">Year</Form.Label>
+                <select className="form-control-modern" value={printYear} onChange={e => setPrintYear(Number(e.target.value))}>
+                  {printYearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </Col>
+            </Row>
+          </Modal.Body>
+          <Modal.Footer className="border-0 px-4 pb-4">
+            <Button variant="light" className="px-4 py-2 border" onClick={() => setShowPrintModal(false)} style={{borderRadius:'12px',fontWeight:600}}>Cancel</Button>
+            <button className="btn-gold w-auto px-4 py-2 d-inline-flex" onClick={handlePrint} style={{borderRadius:'12px'}}>
+              <FontAwesomeIcon icon={faPrint} className="me-2" /> Print {MONTH_NAMES[printMonth-1]} {printYear}
+            </button>
+          </Modal.Footer>
+        </Modal>
+
     </div>
   );
 };

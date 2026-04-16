@@ -6,6 +6,7 @@ const cors = require('cors');
 // Import routes
 const clientRoutes = require('./routes/clients');
 const documentRoutes = require('./routes/documents');
+const expenseRoutes = require('./routes/expenses');
 
 const app = express();
 
@@ -15,7 +16,7 @@ app.use(express.json());
 
 // Database Connection
 // The user provided MONGO_URI in plain text in the prompt, but we should use process.env if available, falling back to the plain text if not strictly configured in .env yet.
-const MONGODB_URI = process.env.MONGO_URI || "mongodb+srv://mani:mani123@image-generator.x56ji.mongodb.net/?appName=Image-generator";
+const MONGODB_URI = process.env.MONGO_URI || "mongodb+srv://ajlaw2026:ajlaw2026@ajlaw.fsqrojk.mongodb.net/?appName=AJLAW";
 
 mongoose.connect(MONGODB_URI, {
     // useNewUrlParser and useUnifiedTopology are deprecated in latest drivers, but keeping standard connection
@@ -26,6 +27,7 @@ mongoose.connect(MONGODB_URI, {
 // Routes
 app.use('/api/clients', clientRoutes);
 app.use('/api/documents', documentRoutes);
+app.use('/api/expenses', expenseRoutes);
 
 // Base route for health check
 app.get('/', (req, res) => {

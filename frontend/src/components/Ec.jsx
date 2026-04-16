@@ -40,6 +40,9 @@ const Ec = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState({ vendor: "", status: "", date: "" });
   const [sortOption, setSortOption] = useState("date-desc");
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [printMonth, setPrintMonth] = useState(new Date().getMonth() + 1);
+  const [printYear, setPrintYear] = useState(new Date().getFullYear());
 
   const [clients, setClients] = useState([]);
   const [formData, setFormData] = useState({
@@ -217,6 +220,45 @@ const Ec = () => {
   const handleFilterChange = (field, value) => setFilters({ ...filters, [field]: value });
   const clearFilters = () => { setFilters({ vendor: "", status: "", date: "" }); setSearchTerm(""); setSortOption("date-desc"); };
 
+  const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const printYearOptions = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+
+  const handlePrint = () => {
+    const monthDocs = ecData.filter(d => {
+      if (!d.date) return false;
+      const dt = new Date(d.date);
+      return dt.getMonth() + 1 === printMonth && dt.getFullYear() === printYear;
+    });
+    const monthLabel = `${MONTH_NAMES[printMonth - 1]} ${printYear}`;
+    const rows = monthDocs.map((d, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${d.date ? new Date(d.date).toLocaleDateString('en-GB') : '-'}</td>
+        <td>${d.ecNo || '-'}</td>
+        <td>${d.customerName || '-'}</td>
+        <td>${d.surveyNo || '-'}</td>
+        <td>${d.vendor || '-'}</td>
+        <td>${d.nagar || '-'}</td>
+        <td>₹${Number(d.totalFee||0).toLocaleString()}</td>
+        <td>₹${Number(d.received||0).toLocaleString()}</td>
+        <td style="color:${d.balance>0?'#dc2626':'#16a34a'}">₹${Number(d.balance||0).toLocaleString()}</td>
+        <td>${d.status || '-'}</td>
+      </tr>`).join('');
+    const win = window.open('', '_blank');
+    win.document.write(`<!DOCTYPE html><html><head><title>EC Report – ${monthLabel}</title>
+      <style>body{font-family:Arial,sans-serif;padding:24px;color:#1e293b}h2{color:#d97706}table{width:100%;border-collapse:collapse;margin-top:16px;font-size:13px}th{background:#0f172a;color:#fff;padding:10px 8px;text-align:left}td{padding:9px 8px;border-bottom:1px solid #e2e8f0}tr:nth-child(even){background:#f8fafc}.footer{margin-top:20px;font-size:12px;color:#94a3b8}</style>
+      </head><body>
+      <h2>EC Records – ${monthLabel}</h2>
+      <p>Total records: <strong>${monthDocs.length}</strong> &nbsp;|&nbsp; Printed: <strong>${new Date().toLocaleString('en-GB')}</strong></p>
+      <table><thead><tr><th>#</th><th>Date</th><th>EC No</th><th>Customer</th><th>Survey No</th><th>Vendor</th><th>Nagar</th><th>Total Fee</th><th>Received</th><th>Balance</th><th>Status</th></tr></thead><tbody>${rows || '<tr><td colspan=11 style="text-align:center;padding:20px;color:#94a3b8">No records for this month</td></tr>'}</tbody></table>
+      <div class="footer">AJ Law Firm — Confidential Document</div>
+      </body></html>`);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); }, 400);
+    setShowPrintModal(false);
+  };
+
   const getStatusBadge = (status) => {
     const config = status === "Completed" ? { bg: "#10b981", icon: faCheckCircle } : { bg: "#f59e0b", icon: faClock };
     return (
@@ -262,6 +304,23 @@ const Ec = () => {
           .layout-page::before { content: "📋"; position: fixed; font-size: 280px; opacity: 0.02; bottom: 100px; right: -50px; z-index: 0; transform: rotate(-25deg); pointer-events: none; }
           .main-content { margin-left: 280px; padding: 40px; position: relative; z-index: 1; }
           @media (max-width: 991px) { .main-content { margin-left: 0; padding: 20px; } }
+          @media (max-width: 767px) {
+            .page-title { font-size: 1.6rem !important; }
+            .stat-number { font-size: 1.7rem !important; }
+            .stat-card { padding: 18px 12px; }
+            .controls-bar { padding: 16px; margin-bottom: 20px; }
+            .search-bar, .filter-select { padding: 12px 14px; font-size: 0.88rem; }
+            .search-bar { padding-left: 44px; }
+            .add-record-btn { padding: 12px 20px; width: 100%; justify-content: center; }
+          }
+          @media (max-width: 575px) {
+            .main-content { padding: 12px; }
+            .page-title { font-size: 1.3rem !important; }
+            .stat-number { font-size: 1.4rem !important; }
+            .stat-icon-wrapper { width: 44px; height: 44px; margin-bottom: 12px; }
+            .stat-icon { font-size: 1.2rem; }
+            .stat-label { font-size: 0.75rem; }
+          }
 
           .page-header { margin-bottom: 24px; }
           .page-title { font-family: 'Playfair Display', serif; font-size: 2.2rem; font-weight: 700; color: var(--highlight); margin-bottom: 8px; letter-spacing: -0.5px; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
@@ -386,7 +445,7 @@ const Ec = () => {
                 <Col lg={1} md={4}>
                   <button 
                     className="filter-toggle" 
-                    onClick={() => window.print()}
+                    onClick={() => setShowPrintModal(true)}
                     style={{width: '100%', height: '48px', color: '#10b981', border: '1px solid #10b981', background: 'transparent'}}
                     title="Print Current View"
                   >
@@ -604,6 +663,39 @@ const Ec = () => {
             </Modal>
           )}
         </AnimatePresence>
+
+        {/* ═══ PRINT MONTH PICKER MODAL ═══ */}
+        <Modal show={showPrintModal} onHide={() => setShowPrintModal(false)} centered className="details-modal">
+          <Modal.Header closeButton style={{background:'linear-gradient(135deg,#0f172a,#1e293b)',color:'white',borderRadius:'28px 28px 0 0'}}>
+            <Modal.Title style={{fontFamily:"'Playfair Display',serif",fontSize:'1.3rem'}}>
+              <FontAwesomeIcon icon={faPrint} className="me-2 text-warning" /> Print EC Report
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body style={{padding:'28px 32px'}}>
+            <p style={{color:'#475569',marginBottom:20}}>Select the month and year to print EC records for:</p>
+            <Row className="g-3">
+              <Col md={6}>
+                <Form.Label className="form-label-modern">Month</Form.Label>
+                <select className="form-control-modern" value={printMonth} onChange={e => setPrintMonth(Number(e.target.value))}>
+                  {MONTH_NAMES.map((m,i) => <option key={i} value={i+1}>{m}</option>)}
+                </select>
+              </Col>
+              <Col md={6}>
+                <Form.Label className="form-label-modern">Year</Form.Label>
+                <select className="form-control-modern" value={printYear} onChange={e => setPrintYear(Number(e.target.value))}>
+                  {printYearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </Col>
+            </Row>
+          </Modal.Body>
+          <Modal.Footer className="border-0 px-4 pb-4">
+            <Button variant="light" className="px-4 py-2 border" onClick={() => setShowPrintModal(false)} style={{borderRadius:'12px',fontWeight:600}}>Cancel</Button>
+            <button className="btn-gold w-auto px-4 py-2 d-inline-flex" onClick={handlePrint} style={{borderRadius:'12px'}}>
+              <FontAwesomeIcon icon={faPrint} className="me-2" /> Print {MONTH_NAMES[printMonth-1]} {printYear}
+            </button>
+          </Modal.Footer>
+        </Modal>
+
       </div>
     </div>
   );

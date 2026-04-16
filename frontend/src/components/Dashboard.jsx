@@ -412,6 +412,34 @@ const Dashboard = () => {
         @media (max-width: 991px) {
           .dashboard-shell { margin-left: 0; padding: 20px; }
         }
+        @media (max-width: 767px) {
+          .page-title { font-size: 1.7rem !important; }
+          .stat-number { font-size: 1.6rem !important; }
+          .stat-card { padding: 18px 14px; }
+          .bar-chart-container { height: 160px; padding: 16px 8px; gap: 4px; }
+          .bar-label { font-size: 0.6rem; }
+          .activity-nav { flex-wrap: wrap; gap: 6px; padding: 0 16px; }
+          .activity-tab { font-size: 0.78rem; padding: 5px 10px; }
+          .activity-list, .task-list-container { height: 240px; padding: 0 16px 16px; }
+          .card-header-styled { padding: 16px 16px 12px; }
+          .card-header-styled h4 { font-size: 1rem; }
+          .insight-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+          .insight-box { padding: 14px; }
+          .insight-box-value { font-size: 1.2rem; }
+          .leaderboard-item { padding: 10px 12px; gap: 10px; }
+          .insight-card { padding: 18px; }
+          .custom-select { padding: 6px 10px; font-size: 0.82rem; }
+        }
+        @media (max-width: 575px) {
+          .dashboard-shell { padding: 12px; }
+          .page-title { font-size: 1.3rem !important; }
+          .stat-number { font-size: 1.2rem !important; }
+          .stat-card { padding: 14px 12px; }
+          .insight-grid { grid-template-columns: 1fr; }
+          .bar-chart-container { height: 120px; padding: 10px 4px; gap: 2px; }
+          .bar-label { font-size: 0.55rem; }
+          .leaderboard-rank { width: 28px; height: 28px; font-size: 0.75rem; }
+        }
       `}</style>
       
       <div className="ambient-shape shape-1"></div>
