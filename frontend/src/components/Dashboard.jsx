@@ -426,9 +426,12 @@ const Dashboard = () => {
           .insight-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
           .insight-box { padding: 14px; }
           .insight-box-value { font-size: 1.2rem; }
-          .leaderboard-item { padding: 10px 12px; gap: 10px; }
+          .leaderboard-item { padding: 10px 12px; gap: 8px; flex-wrap: wrap; }
+          .leaderboard-item > div:last-child { font-size: 1.05rem !important; }
+          .task-item { padding: 12px 14px; gap: 10px; flex-wrap: wrap; }
           .insight-card { padding: 18px; }
           .custom-select { padding: 6px 10px; font-size: 0.82rem; }
+          .vendor-collection-wrapper { padding: 16px !important; border-radius: 16px !important; }
         }
         @media (max-width: 575px) {
           .dashboard-shell { padding: 12px; }
@@ -551,7 +554,7 @@ const Dashboard = () => {
         </Row>
 
         <Row className="g-4 mb-5">
-          <Col xl={7} lg={12}>
+          <Col xs={12} xl={7} lg={12}>
             <motion.div variants={itemVariants} className="h-100">
               <div className="glass-card h-100">
                  <div className="card-header-styled" style={{borderBottom: 'none'}}>
@@ -604,7 +607,7 @@ const Dashboard = () => {
             </motion.div>
           </Col>
 
-          <Col xl={5} lg={12}>
+          <Col xs={12} xl={5} lg={12}>
             <motion.div variants={itemVariants} className="h-100">
               <div className="glass-card h-100" style={{background: 'linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)'}}>
                  <div className="card-header-styled">
@@ -693,7 +696,7 @@ const Dashboard = () => {
                 </div>
 
                 <Row className="g-4">
-                  <Col lg={7}>
+                  <Col xs={12} lg={7}>
                     <div className="insight-grid">
                       <div className="insight-box">
                         <div className="d-flex align-items-center gap-3 mb-3">
@@ -725,8 +728,8 @@ const Dashboard = () => {
                       </div>
                     </div>
                   </Col>
-                  <Col lg={5}>
-                    <div style={{background: 'rgba(248, 250, 252, 0.5)', padding: '25px', borderRadius: '24px', border: '1px solid var(--border-glass)'}}>
+                  <Col xs={12} lg={5}>
+                    <div className="vendor-collection-wrapper" style={{background: 'rgba(248, 250, 252, 0.5)', padding: '25px', borderRadius: '24px', border: '1px solid var(--border-glass)'}}>
                       <div className="d-flex justify-content-between align-items-center mb-4">
                         <h5 style={{margin: 0, fontWeight: 700, color: '#0f172a'}}>Vendor Collections</h5>
                         <FontAwesomeIcon icon={faChartLine} style={{color: '#d1d5db'}} />
