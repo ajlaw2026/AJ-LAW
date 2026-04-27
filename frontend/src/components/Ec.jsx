@@ -316,10 +316,12 @@ const Ec = () => {
           @media (max-width: 575px) {
             .main-content { padding: 12px; }
             .page-title { font-size: 1.3rem !important; }
-            .stat-number { font-size: 1.4rem !important; }
-            .stat-icon-wrapper { width: 44px; height: 44px; margin-bottom: 12px; }
-            .stat-icon { font-size: 1.2rem; }
-            .stat-label { font-size: 0.75rem; }
+            .stat-number { font-size: 1.1rem !important; word-break: break-all; }
+            .stat-card { padding: 12px 6px; min-height: 120px; display: flex; flex-direction: column; justify-content: center; }
+            .stat-icon-wrapper { width: 36px; height: 36px; margin-bottom: 8px; border-radius: 10px; }
+            .stat-icon { font-size: 1rem; }
+            .stat-label { font-size: 0.65rem; letter-spacing: 0; }
+            .g-4 { gap: 10px !important; }
           }
 
           .page-header { margin-bottom: 24px; }
@@ -417,11 +419,11 @@ const Ec = () => {
         </div>
 
         <motion.div variants={containerVariants} initial="hidden" animate="visible">
-          <Row className="mb-4 g-4">
-            <Col lg={3} md={6}><motion.div variants={itemVariants}><div className="stat-card"><div className="stat-icon-wrapper"><FontAwesomeIcon icon={faFileAlt} className="stat-icon" /></div><div className="stat-number">{totalEC}</div><div className="stat-label">Total EC</div></div></motion.div></Col>
-            <Col lg={3} md={6}><motion.div variants={itemVariants}><div className="stat-card"><div className="stat-icon-wrapper"><FontAwesomeIcon icon={faCheckCircle} className="stat-icon" /></div><div className="stat-number">{completedEC}</div><div className="stat-label">Completed</div></div></motion.div></Col>
-            <Col lg={3} md={6}><motion.div variants={itemVariants}><div className="stat-card"><div className="stat-icon-wrapper"><FontAwesomeIcon icon={faHandHoldingUsd} className="stat-icon" /></div><div className="stat-number">{formatCurrency(totalReceived)}</div><div className="stat-label">Total Received</div></div></motion.div></Col>
-            <Col lg={3} md={6}><motion.div variants={itemVariants}><div className="stat-card"><div className="stat-icon-wrapper"><FontAwesomeIcon icon={faBalanceScale} className="stat-icon" /></div><div className="stat-number">{formatCurrency(totalBalance)}</div><div className="stat-label">Total Balance</div></div></motion.div></Col>
+          <Row className="mb-4 g-lg-4 g-2">
+            <Col lg={3} md={6} xs={6}><motion.div variants={itemVariants}><div className="stat-card"><div className="stat-icon-wrapper"><FontAwesomeIcon icon={faFileAlt} className="stat-icon" /></div><div className="stat-number">{totalEC}</div><div className="stat-label">Total EC</div></div></motion.div></Col>
+            <Col lg={3} md={6} xs={6}><motion.div variants={itemVariants}><div className="stat-card"><div className="stat-icon-wrapper"><FontAwesomeIcon icon={faCheckCircle} className="stat-icon" /></div><div className="stat-number">{completedEC}</div><div className="stat-label">Completed</div></div></motion.div></Col>
+            <Col lg={3} md={6} xs={6}><motion.div variants={itemVariants}><div className="stat-card"><div className="stat-icon-wrapper"><FontAwesomeIcon icon={faHandHoldingUsd} className="stat-icon" /></div><div className="stat-number">{formatCurrency(totalReceived)}</div><div className="stat-label">Received</div></div></motion.div></Col>
+            <Col lg={3} md={6} xs={6}><motion.div variants={itemVariants}><div className="stat-card"><div className="stat-icon-wrapper"><FontAwesomeIcon icon={faBalanceScale} className="stat-icon" /></div><div className="stat-number">{formatCurrency(totalBalance)}</div><div className="stat-label">Balance</div></div></motion.div></Col>
           </Row>
 
           <motion.div variants={itemVariants}>
@@ -673,7 +675,7 @@ const Ec = () => {
           </Modal.Header>
           <Modal.Body style={{padding:'28px 32px'}}>
             <p style={{color:'#475569',marginBottom:20}}>Select the month and year to print EC records for:</p>
-            <Row className="g-3">
+            <Row className="g-3"> 
               <Col md={6}>
                 <Form.Label className="form-label-modern">Month</Form.Label>
                 <select className="form-control-modern" value={printMonth} onChange={e => setPrintMonth(Number(e.target.value))}>
