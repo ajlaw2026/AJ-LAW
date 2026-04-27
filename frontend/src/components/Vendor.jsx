@@ -130,6 +130,20 @@ const Vendor = () => {
 
       setVendorData(v);
       setCustomerData(custs);
+      
+      // Flatten all pending documents for the Pendings tab
+      const allPd = docs.map(d => {
+        const mapped = toFrontendRecord(d);
+        // Identify client type for filtering
+        const clientObj = clients.find(c => c._id === (d.client?._id || d.client));
+        return {
+          ...mapped,
+          displayName: (clientObj ? clientObj.name : mapped.customerName) || "N/A",
+          clientType: clientObj ? clientObj.clientType : (d.customerName ? 'Customer' : 'Unknown'),
+          clientPhone: clientObj ? clientObj.phone : (d.rawData?.phone || '')
+        };
+      }).filter(d => d.balance > 0);
+      setAllDocsFlattened(allPd);
     } catch (err) {
       console.error(err);
     }
@@ -141,6 +155,13 @@ const Vendor = () => {
   
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState({ status: "" });
+
+  // Pendings Tab Specific States
+  const [allDocsFlattened, setAllDocsFlattened] = useState([]);
+  const [pendingDocType, setPendingDocType] = useState("");
+  const [pendingClientType, setPendingClientType] = useState("");
+  const [pendingSearchTerm, setPendingSearchTerm] = useState("");
+  const [pendingDate, setPendingDate] = useState("");
 
   // Modal Visibility States
   const [showVendorModal, setShowVendorModal] = useState(false);
@@ -294,7 +315,7 @@ const Vendor = () => {
       alert("Mobile number not registered for this client.");
       return;
     }
-    const message = `Hello ${client.name},\n\nThis is a friendly reminder from AJ Law Firm regarding your pending payments. \n\n*Current Balance:* ₹${totals.balance.toLocaleString()}\n\nPlease kindly settle the balance at your earliest convenience. Thank you!\n\n_Regards,_\n_AJ Law Firm_`;
+    const message = `Hello ${client.name},\n\nThis is a friendly reminder from AJ Law Firm. You have a pending payment for your record.\n\n*Outstanding Balance:* ₹${totals.balance.toLocaleString()}\n\nPlease kindly settle this amount at your earliest convenience. Thank you!\n\n_Regards,_\n_AJ Law Firm_`;
     const encodedMessage = encodeURIComponent(message);
     window.open(`https://wa.me/91${phone}?text=${encodedMessage}`, '_blank');
   };
@@ -302,6 +323,10 @@ const Vendor = () => {
   const clearFilters = () => {
     setSearchTerm("");
     setFilters({ status: "" });
+    setPendingDocType("");
+    setPendingClientType("");
+    setPendingSearchTerm("");
+    setPendingDate("");
   };
 
   // Form Handlers: Vendor
@@ -678,6 +703,44 @@ const Vendor = () => {
 
           /* Form Labels */
           .form-label { font-weight: 600; color: #475569; margin-bottom: 8px; font-size: 0.9rem; }
+
+          /* Premium Unified Table Styling */
+          .modern-table-card {
+            background: white; border-radius: 20px; overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.03); border: 1px solid #e2e8f0;
+          }
+          .modern-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+          .modern-table thead { background: #f8fafc; }
+          .modern-table th {
+            padding: 20px 24px; text-align: left; font-size: 0.75rem; 
+            text-transform: uppercase; letter-spacing: 1px; color: #64748b;
+            font-weight: 700; border-bottom: 2px solid #f1f5f9;
+          }
+          .modern-table td {
+            padding: 20px 24px; vertical-align: middle; border-bottom: 1px solid #f1f5f9;
+            transition: all 0.2s ease;
+          }
+          .modern-table tr:last-child td { border-bottom: none; }
+          .modern-table tr:hover td { background: #fdfaf3; }
+          .table-customer-info { display: flex; align-items: center; gap: 12px; }
+          .customer-avatar {
+            width: 40px; height: 40px; border-radius: 12px; background: #fffbeb;
+            display: flex; align-items: center; justify-content: center; color: #fbbf24;
+            font-weight: 700; font-size: 1rem; border: 1px solid #fef3c7;
+          }
+          .table-badge { padding: 6px 12px; border-radius: 8px; font-weight: 600; font-size: 0.75rem; }
+          .payment-total { font-weight: 700; color: #1e293b; }
+          .payment-balance { font-weight: 700; color: #d97706; padding: 6px 12px; background: #fffbeb; border-radius: 8px; }
+          .payment-zero { color: #10b981; background: #ecfdf5; }
+          
+          .table-action-btn {
+            width: 38px; height: 38px; border-radius: 10px; border: 1px solid #e2e8f0;
+            background: white; color: #64748b; transition: all 0.2s ease;
+            display: inline-flex; align-items: center; justify-content: center;
+          }
+          .table-action-btn:hover { border-color: #fbbf24; color: #fbbf24; transform: translateY(-2px); }
+          .table-action-btn.whatsapp-btn { color: #10b981; border-color: #d1fae5; }
+          .table-action-btn.whatsapp-btn:hover { background: #10b981; color: white; border-color: #10b981; }
         `}</style>
 
         <div className="page-header d-flex justify-content-between align-items-center">
@@ -696,48 +759,95 @@ const Vendor = () => {
             <FontAwesomeIcon icon={faUsers} className="me-2" />
             Normal Customers
           </button>
+          <button className={`custom-tab-btn ${localTab === 'pending' ? 'active' : ''}`} onClick={() => setLocalTab('pending')}>
+            <FontAwesomeIcon icon={faClock} className="me-2" />
+            Pendings
+          </button>
         </div>
 
         {/* Action Controls Bar */}
         <div className="controls-bar">
           <Row className="g-4 align-items-center">
-            <Col lg={4} md={6}>
-              <div className="modern-search-wrapper">
-                <FontAwesomeIcon icon={faSearch} />
-                <input 
-                  type="text" 
-                  className="modern-input" 
-                  placeholder={`Search ${localTab === 'vendor' ? 'Vendors' : 'Customers'}...`}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-            </Col>
-            {localTab === 'vendor' && (
-              <Col lg={2} md={6}>
-                <select className="modern-select" value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
-                  <option value="">All Statuses</option>
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
-                </select>
-              </Col>
+            {localTab !== 'pending' ? (
+              <>
+                <Col lg={4} md={6}>
+                  <div className="modern-search-wrapper">
+                    <FontAwesomeIcon icon={faSearch} />
+                    <input 
+                      type="text" 
+                      className="modern-input" 
+                      placeholder={`Search ${localTab === 'vendor' ? 'Vendors' : 'Customers'}...`}
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                </Col>
+                {localTab === 'vendor' && (
+                  <Col lg={2} md={6}>
+                    <select className="modern-select" value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
+                      <option value="">All Statuses</option>
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                    </select>
+                  </Col>
+                )}
+                <Col lg={2} md={6}>
+                  <button className="modern-btn btn-clear" onClick={clearFilters}>
+                    <FontAwesomeIcon icon={faTimes} className="me-2" /> Clear
+                  </button>
+                </Col>
+                <Col lg={localTab === 'vendor' ? 4 : 6} md={6} className="text-md-end">
+                  {localTab === 'vendor' ? (
+                    <button className="modern-btn btn-gold w-auto d-inline-flex px-5" onClick={openAddVendorForm}>
+                      <FontAwesomeIcon icon={faPlus} className="me-2" /> Add New Vendor
+                    </button>
+                  ) : (
+                    <button className="modern-btn btn-gold w-auto d-inline-flex px-5" onClick={openAddCustomerForm}>
+                      <FontAwesomeIcon icon={faPlus} className="me-2" /> Add New Customer
+                    </button>
+                  )}
+                </Col>
+              </>
+            ) : (
+              <>
+                <Col lg={3} md={6}>
+                   <div className="modern-search-wrapper">
+                      <FontAwesomeIcon icon={faSearch} />
+                      <input 
+                        type="text" 
+                        className="modern-input" 
+                        placeholder="Search Pendings..."
+                        value={pendingSearchTerm}
+                        onChange={(e) => setPendingSearchTerm(e.target.value)}
+                      />
+                   </div>
+                </Col>
+                <Col lg={2} md={6}>
+                   <select className="modern-select" value={pendingDocType} onChange={(e) => setPendingDocType(e.target.value)}>
+                      <option value="">Categories (All)</option>
+                      <option value="EC">EC</option>
+                      <option value="Nagal">Nagal</option>
+                      <option value="Agreement">Agreement</option>
+                      <option value="Deed">Deed</option>
+                   </select>
+                </Col>
+                <Col lg={2} md={6}>
+                   <select className="modern-select" value={pendingClientType} onChange={(e) => setPendingClientType(e.target.value)}>
+                      <option value="">Clients (All)</option>
+                      <option value="Vendor">Vendor</option>
+                      <option value="Customer">Normal Customer</option>
+                   </select>
+                </Col>
+                <Col lg={2} md={6}>
+                   <input type="date" className="modern-input" value={pendingDate} onChange={(e) => setPendingDate(e.target.value)} />
+                </Col>
+                <Col lg={2} md={6}>
+                  <button className="modern-btn btn-clear" onClick={clearFilters}>
+                    <FontAwesomeIcon icon={faTimes} className="me-2" /> Clear
+                  </button>
+                </Col>
+              </>
             )}
-            <Col lg={2} md={6}>
-              <button className="modern-btn btn-clear" onClick={clearFilters}>
-                <FontAwesomeIcon icon={faTimes} className="me-2" /> Clear
-              </button>
-            </Col>
-            <Col lg={localTab === 'vendor' ? 4 : 6} md={6} className="text-md-end">
-              {localTab === 'vendor' ? (
-                <button className="modern-btn btn-gold w-auto d-inline-flex px-5" onClick={openAddVendorForm}>
-                  <FontAwesomeIcon icon={faPlus} className="me-2" /> Add New Vendor
-                </button>
-              ) : (
-                <button className="modern-btn btn-gold w-auto d-inline-flex px-5" onClick={openAddCustomerForm}>
-                  <FontAwesomeIcon icon={faPlus} className="me-2" /> Add New Customer
-                </button>
-              )}
-            </Col>
           </Row>
         </div>
 
@@ -834,6 +944,98 @@ const Vendor = () => {
                 )}
               </AnimatePresence>
             </Row>
+          )}
+          
+          {localTab === 'pending' && (
+            <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="modern-table-card">
+              <div className="table-responsive">
+                <table className="modern-table">
+                  <thead>
+                    <tr>
+                      <th>Client Name</th>
+                      <th>Category</th>
+                      <th>Client Type</th>
+                      <th>Date</th>
+                      <th>Total Amount</th>
+                      <th>Pending Balance</th>
+                      <th className="text-end">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      let filtered = allDocsFlattened;
+                      if (pendingDocType) {
+                        filtered = filtered.filter(d => (d.rawData?.documentType || '') === pendingDocType);
+                      }
+                      if (pendingClientType) {
+                        filtered = filtered.filter(d => d.clientType === pendingClientType);
+                      }
+                      if (pendingDate) {
+                        filtered = filtered.filter(d => d.date === pendingDate);
+                      }
+                      if (pendingSearchTerm) {
+                        const q = pendingSearchTerm.toLowerCase();
+                        filtered = filtered.filter(d => 
+                          d.customerName.toLowerCase().includes(q) || 
+                          d.details.toLowerCase().includes(q) ||
+                          (d.rawData?.recordNo && d.rawData.recordNo.toLowerCase().includes(q))
+                        );
+                      }
+
+                      return filtered.length > 0 ? filtered.map(item => (
+                        <tr key={item.id}>
+                          <td>
+                            <div className="table-customer-info">
+                              <div className="customer-avatar">{(item.displayName || "N").charAt(0)}</div>
+                              <div>
+                                <div className="fw-bold text-dark">{item.displayName || "N/A"}</div>
+                                <div className="text-muted" style={{fontSize: '0.8rem'}}>{item.clientPhone || 'No Phone'}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <Badge bg="info" className="table-badge" style={{background: '#e0f2fe', color: '#0369a1'}}>{item.rawData?.documentType}</Badge>
+                          </td>
+                          <td>
+                             <span className="text-muted fw-semibold" style={{fontSize: '0.85rem'}}>{item.clientType}</span>
+                          </td>
+                          <td>
+                             <div className="fw-semibold text-muted" style={{fontSize: '0.85rem', whiteSpace: 'nowrap'}}>
+                               {item.date ? item.date.split('-').reverse().join('/') : 'N/A'}
+                             </div>
+                          </td>
+                          <td><span className="payment-total">{formatCurrency(item.cost)}</span></td>
+                          <td><span className="payment-balance">{formatCurrency(item.balance)}</span></td>
+                          <td>
+                            <div className="d-flex justify-content-end gap-2">
+                              <button className="table-action-btn whatsapp-btn" title="Send Reminder" onClick={(e) => { 
+                                e.stopPropagation(); 
+                                handleWhatsAppShare({ name: item.displayName, phone: item.clientPhone }, { balance: item.balance }); 
+                              }}>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.72.94 3.659 1.437 5.634 1.437h.005c6.558 0 11.897-5.335 11.9-11.894a11.83 11.83 0 00-3.484-8.413z"/></svg>
+                              </button>
+                              <button className="table-action-btn" title="View Details" onClick={() => {
+                                setCurrentDoc(item.rawData);
+                                setShowDocModal(true);
+                              }}>
+                                <FontAwesomeIcon icon={faEye} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )) : (
+                        <tr>
+                          <td colSpan="8" className="text-center py-5 text-muted">
+                            <FontAwesomeIcon icon={faHistory} size="2x" className="mb-3 d-block mx-auto opacity-20" />
+                            <h5>No pending records found matching criteria</h5>
+                          </td>
+                        </tr>
+                      );
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            </motion.div>
           )}
         </motion.div>
 
