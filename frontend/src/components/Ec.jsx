@@ -50,6 +50,8 @@ const Ec = () => {
     office: "", nagar: "", surveyNo: "",
     amount: "", commission: "", others: "", totalFee: "", received: "", balance: ""
   });
+  const [clientSearchTerm, setClientSearchTerm] = useState("");
+  const [showClientDropdown, setShowClientDropdown] = useState(false);
 
   const totalEC = ecData.length;
   const completedEC = ecData.filter(d => d.status === "Completed").length;
@@ -127,6 +129,8 @@ const Ec = () => {
   const handleAddNew = () => {
     setIsEdit(false); setCurrentEC(null);
     setFormData({ date: "", ecNo: "", vendor: "", customerName: "", client: "", office: "", nagar: "", surveyNo: "", amount: "", commission: "", others: "", totalFee: "", received: "", balance: "", newPayment: "", paymentNote: "" });
+    setClientSearchTerm("");
+    setShowClientDropdown(false);
     setShowModal(true);
   };
   const handleEdit = (ec, e) => {
@@ -138,6 +142,8 @@ const Ec = () => {
       totalFee: ec.totalFee.toString(), received: ec.received.toString(), balance: ec.balance.toString(),
       newPayment: "", paymentNote: ""
     });
+    setClientSearchTerm("");
+    setShowClientDropdown(false);
     setShowModal(true);
   };
   const handleView = (ec) => { setCurrentEC(ec); setShowViewModal(true); };
@@ -293,6 +299,15 @@ const Ec = () => {
     return Number(val || 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
   };
 
+  const filteredClients = clients.filter(c => {
+    const query = clientSearchTerm.toLowerCase();
+    return (
+      (c.name || "").toLowerCase().includes(query) ||
+      (c.phone || "").toLowerCase().includes(query) ||
+      (c.clientType || "").toLowerCase().includes(query)
+    );
+  });
+
   return (
     <div className="layout-page">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
@@ -409,6 +424,7 @@ const Ec = () => {
           .history-table td { padding: 10px 12px; background: #f8fafc; font-size: 0.85rem; border: 1px solid #f1f5f9; }
           .history-table tr td:first-child { border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
           .history-table tr td:last-child { border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
+          .client-search-item:hover { background-color: #f1f5f9 !important; }
         `}</style>
 
         <div className="page-header d-flex justify-content-between align-items-center">
@@ -585,20 +601,82 @@ const Ec = () => {
                       <Col md={4}><Form.Group><Form.Label className="form-label-modern">Date</Form.Label><Form.Control type="date" className="form-control-modern" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} /></Form.Group></Col>
                       <Col md={4}><Form.Group><Form.Label className="form-label-modern">EC No</Form.Label><Form.Control type="text" className="form-control-modern" placeholder="Enter EC No" value={formData.ecNo} onChange={(e) => setFormData({ ...formData, ecNo: e.target.value })} /></Form.Group></Col>
                       <Col md={4}>
-                        <Form.Group>
+                        <Form.Group className="position-relative">
                           <Form.Label className="form-label-modern">Link to Client</Form.Label>
-                          <select className="form-control-modern" value={formData.client} onChange={(e) => {
-                             const sel = clients.find(c => c._id === e.target.value);
-                             setFormData({
-                               ...formData, 
-                               client: e.target.value,
-                               vendor: sel?.clientType === 'Vendor' ? sel.name : "",
-                               customerName: sel?.clientType === 'Customer' ? sel.name : formData.customerName
-                             });
-                          }}>
-                            <option value="">-- Select Client --</option>
-                            {clients.map(c => <option key={c._id} value={c._id}>[{c.clientType}] {c.name} {c.phone ? `- ${c.phone}` : ''}</option>)}
-                          </select>
+                          {(() => {
+                            const selectedClient = clients.find(c => c._id === (formData.client?._id || formData.client));
+                            return (
+                              <>
+                                <div className="position-relative">
+                                  <Form.Control
+                                    type="text"
+                                    className="form-control-modern"
+                                    placeholder="🔍 Type to search client..."
+                                    value={clientSearchTerm}
+                                    onChange={(e) => {
+                                      setClientSearchTerm(e.target.value);
+                                      setShowClientDropdown(true);
+                                    }}
+                                    onFocus={() => setShowClientDropdown(true)}
+                                    onBlur={() => setTimeout(() => setShowClientDropdown(false), 200)}
+                                  />
+                                </div>
+                                {showClientDropdown && (
+                                  <div 
+                                    className="position-absolute bg-white border rounded shadow-lg w-100"
+                                    style={{ zIndex: 1050, maxHeight: '200px', overflowY: 'auto', left: 0, right: 0 }}
+                                  >
+                                    {filteredClients.length > 0 ? (
+                                      filteredClients.map(c => (
+                                        <div
+                                          key={c._id}
+                                          className="p-2 border-bottom client-search-item"
+                                          style={{ cursor: 'pointer' }}
+                                          onClick={() => {
+                                            setFormData({
+                                              ...formData,
+                                              client: c._id,
+                                              vendor: c.clientType === 'Vendor' ? c.name : formData.vendor,
+                                              customerName: c.clientType === 'Customer' ? c.name : formData.customerName
+                                            });
+                                            setClientSearchTerm("");
+                                            setShowClientDropdown(false);
+                                          }}
+                                        >
+                                          <Badge bg="secondary" className="me-2">{c.clientType}</Badge>
+                                          <strong>{c.name}</strong> {c.phone ? `- ${c.phone}` : ''}
+                                        </div>
+                                      ))
+                                    ) : (
+                                      <div className="p-3 text-muted text-center small">No clients match search</div>
+                                    )}
+                                  </div>
+                                )}
+                                {selectedClient ? (
+                                  <div className="mt-2 d-flex align-items-center justify-content-between p-2 rounded bg-light border">
+                                    <span className="small fw-semibold text-primary">
+                                      Linked: [{selectedClient.clientType}] {selectedClient.name} {selectedClient.phone ? `(${selectedClient.phone})` : ''}
+                                    </span>
+                                    <Button 
+                                      variant="link" 
+                                      className="text-danger p-0 ms-2"
+                                      onClick={() => {
+                                        setFormData({
+                                          ...formData,
+                                          client: ""
+                                        });
+                                      }}
+                                      style={{ textDecoration: 'none' }}
+                                    >
+                                      <FontAwesomeIcon icon={faTimes} />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="mt-2 small text-muted">No client linked</div>
+                                )}
+                              </>
+                            );
+                          })()}
                         </Form.Group>
                       </Col>
                       <Col md={4}><Form.Group><Form.Label className="form-label-modern">Customer Name</Form.Label><Form.Control type="text" className="form-control-modern" placeholder="Enter customer" value={formData.customerName} onChange={(e) => setFormData({ ...formData, customerName: e.target.value })} /></Form.Group></Col>
