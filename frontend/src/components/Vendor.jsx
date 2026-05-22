@@ -161,7 +161,8 @@ const Vendor = () => {
   const [pendingDocType, setPendingDocType] = useState("");
   const [pendingClientType, setPendingClientType] = useState("");
   const [pendingSearchTerm, setPendingSearchTerm] = useState("");
-  const [pendingDate, setPendingDate] = useState("");
+  const [pendingStartDate, setPendingStartDate] = useState("");
+  const [pendingEndDate, setPendingEndDate] = useState("");
 
   // Modal Visibility States
   const [showVendorModal, setShowVendorModal] = useState(false);
@@ -326,7 +327,8 @@ const Vendor = () => {
     setPendingDocType("");
     setPendingClientType("");
     setPendingSearchTerm("");
-    setPendingDate("");
+    setPendingStartDate("");
+    setPendingEndDate("");
   };
 
   // Form Handlers: Vendor
@@ -480,8 +482,11 @@ const Vendor = () => {
             .modern-btn { padding: 12px 16px; font-size: 0.88rem; }
             .data-card { padding: 20px; }
             .card-title { font-size: 1.25rem; }
-            .modal-info-row { flex-direction: column; gap: 15px; padding: 16px 20px; }
-            .modal-info-item { min-width: 100%; }
+            .modal-info-row { flex-direction: column; gap: 20px; padding: 20px; }
+            .modal-info-item { min-width: auto; flex: 1; border-bottom: none !important; }
+            .mobile-detail-group { display: flex; gap: 15px; width: 100%; border-bottom: 1px solid #f1f5f9; padding-bottom: 15px; }
+            .mobile-detail-group:last-child { border-bottom: none; }
+            .status-top { order: -1; width: 100%; border-bottom: 1px solid #f1f5f9; padding-bottom: 15px; }
             .section-title { font-size: 1.2rem; margin: 30px 0 15px; }
             .billing-item { padding: 16px; }
             .grand-summary { grid-template-columns: 1fr; gap: 16px; padding: 24px; }
@@ -489,8 +494,20 @@ const Vendor = () => {
           @media (max-width: 575px) {
             .main-content { padding: 12px; }
             .page-title { font-size: 1.4rem !important; }
-            .custom-tabs { flex-direction: column; width: 100%; }
-            .custom-tab-btn { width: 100%; border-radius: 10px; }
+            .custom-tabs { 
+              flex-direction: row; width: 100%; overflow-x: auto; white-space: nowrap; 
+              scrollbar-width: none; -ms-overflow-style: none; padding: 6px; gap: 6px;
+            }
+            .custom-tabs::-webkit-scrollbar { display: none; }
+            .custom-tab-btn { flex: 1; border-radius: 10px; padding: 10px 16px; white-space: nowrap; width: auto; font-size: 0.8rem; }
+            .controls-bar { 
+              flex-direction: row; align-items: center; overflow-x: auto; 
+              gap: 12px; scrollbar-width: none; flex-wrap: nowrap;
+            }
+            .controls-bar::-webkit-scrollbar { display: none; }
+            .search-wrapper, .modern-select, .action-group { width: auto !important; min-width: max-content; }
+            .action-group { flex-direction: row !important; gap: 8px; }
+            .action-group .modern-btn { padding: 10px 16px; font-size: 0.8rem; width: auto; white-space: nowrap; }
             .data-card .actions { opacity: 1; top: 12px; right: 12px; }
             .circle-btn { width: 32px; height: 32px; font-size: 0.8rem; }
             .card-stats { grid-template-columns: 1fr; gap: 10px; }
@@ -684,13 +701,16 @@ const Vendor = () => {
 
           /* Modal Tab Styles */
           .modal-tabs-wrapper {
-            display: flex; gap: 12px; margin-bottom: 24px; padding: 4px;
-            background: #f1f5f9; border-radius: 16px; width: fit-content;
+            display: flex; gap: 8px; margin-bottom: 24px; padding: 6px;
+            background: #f1f5f9; border-radius: 16px; width: 100%;
+            overflow-x: auto; white-space: nowrap;
+            -ms-overflow-style: none; scrollbar-width: none;
           }
+          .modal-tabs-wrapper::-webkit-scrollbar { display: none; }
           .modal-tab-pill {
-            padding: 10px 24px; border-radius: 12px; border: none;
-            background: transparent; color: #64748b; font-weight: 600; font-size: 0.9rem;
-            transition: all 0.2s ease; cursor: pointer;
+            padding: 10px 20px; border-radius: 12px; border: none;
+            background: transparent; color: #64748b; font-weight: 600; font-size: 0.85rem;
+            transition: all 0.2s ease; cursor: pointer; flex-shrink: 0;
           }
           .modal-tab-pill.active {
             background: #ffc525ff; color: #0f172a; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
@@ -810,7 +830,7 @@ const Vendor = () => {
               </>
             ) : (
               <>
-                <Col lg={3} md={6}>
+                <Col lg={2} md={6}>
                    <div className="modern-search-wrapper">
                       <FontAwesomeIcon icon={faSearch} />
                       <input 
@@ -839,7 +859,10 @@ const Vendor = () => {
                    </select>
                 </Col>
                 <Col lg={2} md={6}>
-                   <input type="date" className="modern-input" value={pendingDate} onChange={(e) => setPendingDate(e.target.value)} />
+                   <input type="date" className="modern-input" title="From Date" value={pendingStartDate} onChange={(e) => setPendingStartDate(e.target.value)} />
+                </Col>
+                <Col lg={2} md={6}>
+                   <input type="date" className="modern-input" title="To Date" value={pendingEndDate} onChange={(e) => setPendingEndDate(e.target.value)} />
                 </Col>
                 <Col lg={2} md={6}>
                   <button className="modern-btn btn-clear" onClick={clearFilters}>
@@ -970,8 +993,11 @@ const Vendor = () => {
                       if (pendingClientType) {
                         filtered = filtered.filter(d => d.clientType === pendingClientType);
                       }
-                      if (pendingDate) {
-                        filtered = filtered.filter(d => d.date === pendingDate);
+                      if (pendingStartDate) {
+                        filtered = filtered.filter(d => d.date >= pendingStartDate);
+                      }
+                      if (pendingEndDate) {
+                        filtered = filtered.filter(d => d.date <= pendingEndDate);
                       }
                       if (pendingSearchTerm) {
                         const q = pendingSearchTerm.toLowerCase();
@@ -1162,15 +1188,22 @@ const Vendor = () => {
                 </Modal.Header>
                 <Modal.Body className="p-4 p-md-5" style={{maxHeight:'80vh', overflowY:'auto'}}>
                   <div className="modal-info-row">
-                    <div className="modal-info-item"><div className="lbl">Vendor ID</div><div className="val">{currentVendor.vendorId}</div></div>
-                    <div className="modal-info-item"><div className="lbl">Phone</div><div className="val">{currentVendor.phone}</div></div>
-                    <div className="modal-info-item"><div className="lbl">Status</div><div className="val">{getStatusBadge(currentVendor.status)}</div></div>
-                    <div className="modal-info-item ms-auto text-end"><div className="lbl">Collected</div><div className="val text-success">{formatCurrency(getVendorPaymentTotals(currentVendor.vendorId).collected)}</div></div>
-                    <div className="modal-info-item text-end"><div className="lbl">Balance</div><div className="val text-warning">{formatCurrency(getVendorPaymentTotals(currentVendor.vendorId).balance)}</div></div>
+                    <div className="modal-info-item status-top">
+                      <div className="lbl">Status</div>
+                      <div className="val">{getStatusBadge(currentVendor.status)}</div>
+                    </div>
+                    <div className="mobile-detail-group">
+                      <div className="modal-info-item"><div className="lbl">Vendor ID</div><div className="val">{currentVendor.vendorId}</div></div>
+                      <div className="modal-info-item"><div className="lbl">Phone</div><div className="val">{currentVendor.phone}</div></div>
+                    </div>
+                    <div className="mobile-detail-group">
+                      <div className="modal-info-item"><div className="lbl">Collected</div><div className="val text-success">{formatCurrency(getVendorPaymentTotals(currentVendor.vendorId).collected)}</div></div>
+                      <div className="modal-info-item"><div className="lbl">Balance</div><div className="val text-warning">{formatCurrency(getVendorPaymentTotals(currentVendor.vendorId).balance)}</div></div>
+                    </div>
                   </div>
 
                   <div className="mt-5">
-                    <div className="d-flex justify-content-between align-items-center mb-4">
+                    <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
                       <h4 className="section-title m-0 border-0"><FontAwesomeIcon icon={faFolderOpen} /> Linked Documents</h4>
                       <div className="modal-tabs-wrapper">
                         {["EC Records", "Nagal Records", "Agreements", "Deeds"].map(tab => (
@@ -1258,11 +1291,26 @@ const Vendor = () => {
                 </Modal.Header>
                 <Modal.Body className="p-4 p-md-5" style={{maxHeight: '80vh', overflowY: 'auto'}}>
                   <div className="modal-info-row">
-                    <div className="modal-info-item"><div className="lbl">Phone / Contact</div><div className="val">{currentCustomer.phone}</div></div>
-                    <div className="modal-info-item"><div className="lbl">Reference Link</div><div className="val"><Badge bg="light" text="dark" style={{border: '1px solid #e2e8f0'}}>{currentCustomer.vendorId}</Badge></div></div>
-                    <div className="modal-info-item ms-auto" style={{flex: 1}}><div className="lbl">Address</div><div className="val">{currentCustomer.address}</div></div>
-                  </div>                  <div className="mt-5">
-                    <div className="d-flex justify-content-between align-items-center mb-4">
+                    <div className="modal-info-item status-top">
+                      <div className="lbl">Reference Link</div>
+                      <div className="val"><Badge bg="light" text="dark" style={{border: '1px solid #e2e8f0'}}>{currentCustomer.vendorId}</Badge></div>
+                    </div>
+                    <div className="mobile-detail-group">
+                      <div className="modal-info-item"><div className="lbl">Phone / Contact</div><div className="val">{currentCustomer.phone}</div></div>
+                      <div className="modal-info-item"><div className="lbl">Address</div><div className="val">{currentCustomer.address}</div></div>
+                    </div>
+                    {(() => {
+                      const sums = getCustomerPaymentSummary(currentCustomer);
+                      return (
+                        <div className="mobile-detail-group">
+                          <div className="modal-info-item"><div className="lbl">Collected</div><div className="val text-success">{formatCurrency(sums.collected)}</div></div>
+                          <div className="modal-info-item"><div className="lbl">Balance</div><div className="val text-warning">{formatCurrency(sums.balance)}</div></div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                  <div className="mt-5">
+                    <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
                       <h4 className="section-title m-0 border-0"><FontAwesomeIcon icon={faFolderOpen} /> Linked Documents</h4>
                       <div className="modal-tabs-wrapper">
                         {["EC Records", "Nagal Records", "Agreements", "Deeds"].map(tab => (
